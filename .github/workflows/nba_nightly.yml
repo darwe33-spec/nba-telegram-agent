@@ -19,7 +19,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install nba_api requests
+          run: pip install requests
 
       - name: Run NBA Nightly Report
         env:
