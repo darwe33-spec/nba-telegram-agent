@@ -1,4 +1,4 @@
-name: NBA Nightly Report
+name: NBA Nightly Dashboard
 
 on:
   schedule:
@@ -6,8 +6,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  send-report:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,8 +22,14 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Run NBA Nightly Report
+      - name: Run Dashboard Generator
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python nba_nightly_report.py
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
