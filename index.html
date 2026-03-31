@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NBA Nightly — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+
+/* ══════════════════════════════════════════
+   DESIGN TOKENS
+══════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Surface */
+  --page:     #F5F5F7;
+  --surface:  #FFFFFF;
+  --raised:   #FFFFFF;
+  --inset:    #F0F0F2;
+
+  /* Type */
+  --ink:      #1D1D1F;
+  --ink2:     #3D3D3F;
+  --ink3:     #6E6E73;
+  --ink4:     #AEAEB2;
+  --ink5:     #D1D1D6;
+
+  /* Borders */
+  --rule:     rgba(0,0,0,0.08);
+  --rule2:    rgba(0,0,0,0.05);
+
+  /* Accent — NBA Red */
+  --red:      #E82127;
+  --red-soft: rgba(232,33,39,0.08);
+  --red-mid:  rgba(232,33,39,0.18);
+
+  /* Israeli blue */
+  --il:       #0038A8;
+  --il-soft:  rgba(0,56,168,0.07);
+  --il-mid:   rgba(0,56,168,0.15);
+  --il-text:  #002C84;
+
+  /* History gold */
+  --gold:     #B07D2A;
+  --gold-soft: rgba(176,125,42,0.07);
+  --gold-text: #7A5518;
+
+  /* Shadow system */
+  --sh-sm:  0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --sh-md:  0 4px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
+  --sh-lg:  0 8px 32px rgba(0,0,0,0.09), 0 2px 8px rgba(0,0,0,0.05);
+
+  --radius:    12px;
+  --radius-sm: 8px;
+  --radius-lg: 16px;
+
+  --serif: 'DM Serif Display', Georgia, serif;
+  --sans:  'DM Sans', system-ui, sans-serif;
+}
+
+html { font-size: 15px; scroll-behavior: smooth; }
+body {
+  font-family: var(--sans);
+  background: var(--page);
+  color: var(--ink);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--ink5); border-radius: 3px; }
+
+/* ══════════════════════════════════════════
+   TOPBAR
+══════════════════════════════════════════ */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(245,245,247,0.85);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--rule);
+  padding: 0 40px;
+  display: flex; align-items: center;
+  height: 56px; gap: 24px;
+}
+.topbar-logo {
+  font-family: var(--serif);
+  font-size: 18px; letter-spacing: -0.3px;
+  color: var(--ink);
+  display: flex; align-items: baseline; gap: 3px;
+}
+.topbar-logo .accent { color: var(--red); }
+.topbar-sep { width: 1px; height: 18px; background: var(--rule); }
+.topbar-date {
+  font-size: 13px; font-weight: 400; color: var(--ink3);
+  letter-spacing: -0.1px;
+}
+.topbar-right {
+  margin-left: auto; display: flex; align-items: center; gap: 12px;
+}
+.topbar-pill {
+  font-size: 12px; font-weight: 500; color: var(--ink3);
+  background: var(--inset); border: 1px solid var(--rule);
+  padding: 4px 12px; border-radius: 99px;
+  letter-spacing: -0.1px;
+}
+.live-badge {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 500; color: var(--red);
+  background: var(--red-soft); border: 1px solid var(--red-mid);
+  padding: 4px 10px; border-radius: 99px;
+}
+.live-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--red);
+  animation: blink 2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ══════════════════════════════════════════
+   LOADING
+══════════════════════════════════════════ */
+#loader {
+  position: fixed; inset: 0; z-index: 200;
+  background: var(--page);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 16px;
+}
+.loader-logo {
+  font-family: var(--serif);
+  font-size: 36px; color: var(--ink); letter-spacing: -0.5px;
+}
+.loader-logo span { color: var(--red); }
+.loader-track {
+  width: 160px; height: 2px;
+  background: var(--ink5); border-radius: 1px; overflow: hidden;
+}
+.loader-fill {
+  height: 100%; width: 0; background: var(--red); border-radius: 1px;
+  animation: fill 1.3s cubic-bezier(.4,0,.2,1) forwards;
+}
+@keyframes fill { to { width: 100%; } }
+.loader-sub {
+  font-size: 12px; font-weight: 400; color: var(--ink4);
+  letter-spacing: 0.5px;
+}
+
+/* ══════════════════════════════════════════
+   JSON PANEL
+══════════════════════════════════════════ */
+#json-panel {
+  max-width: 580px; margin: 48px auto;
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--sh-md); overflow: hidden;
+}
+.jp-head {
+  padding: 20px 28px 16px;
+  border-bottom: 1px solid var(--rule2);
+}
+.jp-head h2 {
+  font-family: var(--serif);
+  font-size: 20px; font-weight: 400; color: var(--ink);
+  letter-spacing: -0.3px; margin-bottom: 4px;
+}
+.jp-head p { font-size: 13px; color: var(--ink3); }
+.jp-body { padding: 24px 28px; }
+.jp-label {
+  font-size: 11px; font-weight: 600; color: var(--ink3);
+  letter-spacing: 0.5px; text-transform: uppercase;
+  display: block; margin-bottom: 8px;
+}
+.jp-row { display: flex; gap: 8px; margin-bottom: 20px; }
+.jp-file {
+  flex: 1; font-size: 12px; font-family: var(--sans);
+  padding: 9px 12px; color: var(--ink2);
+  background: var(--inset); border: 1px solid var(--rule);
+  border-radius: var(--radius-sm); cursor: pointer;
+  transition: border-color .15s;
+}
+.jp-file:focus { outline: none; border-color: var(--ink3); }
+.btn {
+  font-family: var(--sans); font-size: 13px; font-weight: 500;
+  padding: 9px 18px; border-radius: var(--radius-sm); cursor: pointer;
+  transition: all .15s; white-space: nowrap; letter-spacing: -0.1px;
+}
+.btn-primary {
+  background: var(--ink); color: #fff; border: 1px solid var(--ink);
+}
+.btn-primary:hover { background: var(--ink2); }
+.btn-ghost {
+  background: transparent; color: var(--ink2);
+  border: 1px solid var(--rule);
+}
+.btn-ghost:hover { background: var(--inset); border-color: var(--ink4); }
+.jp-or {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0 0 14px;
+  font-size: 11px; color: var(--ink4);
+}
+.jp-or::before, .jp-or::after {
+  content: ''; flex: 1; height: 1px; background: var(--rule);
+}
+.jp-textarea {
+  width: 100%; height: 86px; resize: vertical;
+  font-family: 'SF Mono', 'Menlo', monospace; font-size: 11px;
+  padding: 10px 12px; color: var(--ink2);
+  background: var(--inset); border: 1px solid var(--rule);
+  border-radius: var(--radius-sm); margin-bottom: 12px;
+  transition: border-color .15s;
+}
+.jp-textarea:focus { outline: none; border-color: var(--ink3); }
+.jp-actions { display: flex; gap: 8px; }
+.jp-err {
+  display: none; margin-top: 12px;
+  padding: 10px 14px; font-size: 12px; color: var(--red);
+  background: var(--red-soft); border: 1px solid var(--red-mid);
+  border-radius: var(--radius-sm);
+}
+
+/* ══════════════════════════════════════════
+   PAGE CONTENT
+══════════════════════════════════════════ */
+#report { display: none; }
+.page { max-width: 1240px; margin: 0 auto; padding: 32px 40px 80px; }
+
+/* ── MVP Card ── */
+.mvp-card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--sh-md);
+  padding: 28px 32px;
+  display: flex; align-items: center; gap: 32px;
+  flex-wrap: wrap; margin-bottom: 36px;
+  position: relative; overflow: hidden;
+}
+.mvp-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; background: var(--red);
+  border-radius: 3px 0 0 3px;
+}
+.mvp-icon { font-size: 36px; flex-shrink: 0; }
+.mvp-copy { flex-shrink: 0; }
+.mvp-eyebrow {
+  font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--red);
+  margin-bottom: 5px;
+}
+.mvp-name {
+  font-family: var(--serif);
+  font-size: 34px; font-weight: 400; color: var(--ink);
+  letter-spacing: -0.5px; line-height: 1.05;
+}
+.mvp-team {
+  font-size: 12px; font-weight: 500; color: var(--ink3);
+  letter-spacing: 0.3px; margin-top: 6px;
+}
+.mvp-divider {
+  width: 1px; height: 56px; background: var(--rule); flex-shrink: 0;
+}
+.mvp-stats { display: flex; gap: 28px; }
+.ms { text-align: center; }
+.ms-v {
+  font-size: 30px; font-weight: 300; color: var(--ink);
+  line-height: 1; letter-spacing: -1px;
+}
+.ms-l {
+  font-size: 10px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--ink4); margin-top: 4px;
+}
+.mvp-formula {
+  margin-left: auto; text-align: right;
+  font-size: 11px; color: var(--ink4); line-height: 1.9;
+}
+.mvp-formula strong { font-size: 22px; font-weight: 300; color: var(--ink2); letter-spacing: -0.5px; }
+
+/* ── Section headings ── */
+.sec-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 0 14px; margin-bottom: 20px;
+  border-bottom: 1px solid var(--rule);
+}
+.sec-label {
+  font-family: var(--serif); font-size: 22px;
+  font-weight: 400; color: var(--ink); letter-spacing: -0.3px;
+}
+.sec-chip {
+  font-size: 11px; font-weight: 500; color: var(--ink3);
+  background: var(--inset); border: 1px solid var(--rule);
+  padding: 3px 10px; border-radius: 99px;
+}
+.sec-rule { flex: 1; height: 1px; background: var(--rule2); }
+.sec-wrap { padding-top: 28px; }
+
+/* ── Games grid ── */
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 16px;
+}
+
+/* ── Game Card ── */
+.gc {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--sh-sm);
+  overflow: hidden; display: flex; flex-direction: column;
+  transition: box-shadow .2s, transform .2s;
+  animation: rise .4s ease both;
+}
+.gc:hover {
+  box-shadow: var(--sh-lg);
+  transform: translateY(-2px);
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* score bar */
+.gc-score {
+  padding: 18px 22px 16px;
+  border-bottom: 1px solid var(--rule2);
+}
+.gc-scoreline {
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; gap: 12px;
+}
+.gc-team { display: flex; flex-direction: column; gap: 2px; }
+.gc-team.r { align-items: flex-end; }
+.gc-abbr {
+  font-size: 20px; font-weight: 600; color: var(--ink);
+  letter-spacing: -0.5px; line-height: 1;
+}
+.gc-full { font-size: 10px; color: var(--ink4); letter-spacing: 0.2px; }
+.gc-mid { text-align: center; }
+.gc-pts {
+  font-size: 32px; font-weight: 300; color: var(--ink);
+  letter-spacing: -1px; line-height: 1;
+}
+.gc-pts .sep { color: var(--ink4); margin: 0 4px; font-weight: 200; }
+.gc-status {
+  font-size: 10px; font-weight: 500; color: var(--ink4);
+  letter-spacing: 0.5px; text-transform: uppercase; margin-top: 3px;
+}
+
+/* scorers */
+.gc-body { padding: 14px 22px; flex: 1; }
+.tb { margin-bottom: 14px; }
+.tb:last-child { margin-bottom: 0; }
+.tb-lbl {
+  font-size: 10px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--ink4);
+  padding-bottom: 7px; margin-bottom: 4px;
+  border-bottom: 1px solid var(--rule2);
+}
+.sc-row {
+  display: flex; align-items: center; gap: 9px;
+  padding: 5px 0; border-bottom: 1px solid var(--rule2);
+}
+.sc-row:last-child { border-bottom: none; }
+.sc-num {
+  font-size: 11px; font-weight: 500; color: var(--red);
+  width: 14px; flex-shrink: 0; text-align: center;
+}
+.sc-name {
+  flex: 1; font-size: 13px; font-weight: 500; color: var(--ink);
+  display: flex; align-items: center; gap: 6px;
+}
+.il-pill {
+  font-size: 9px; font-weight: 600;
+  color: var(--il-text);
+  background: var(--il-soft);
+  border: 1px solid var(--il-mid);
+  padding: 1px 6px; border-radius: 99px;
+  letter-spacing: 0.3px; flex-shrink: 0;
+}
+.sc-line {
+  font-size: 11px; color: var(--ink3); white-space: nowrap;
+}
+.sc-pts {
+  font-size: 20px; font-weight: 300; color: var(--ink);
+  letter-spacing: -0.5px; line-height: 1; white-space: nowrap;
+}
+.sc-pts small {
+  font-size: 9px; font-weight: 500; color: var(--ink4);
+  letter-spacing: 0.5px;
+}
+
+/* youtube row */
+.gc-yt {
+  display: flex; align-items: stretch;
+  border-top: 1px solid var(--rule2);
+  text-decoration: none;
+  transition: background .15s;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  overflow: hidden;
+}
+.gc-yt:hover { background: var(--inset); }
+.yt-thumb {
+  width: 84px; flex-shrink: 0;
+  background: var(--inset);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.yt-thumb img { width: 84px; height: 56px; object-fit: cover; display: block; }
+.yt-ph {
+  width: 84px; height: 56px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--inset);
+}
+.yt-play-btn {
+  width: 28px; height: 20px; background: var(--red);
+  border-radius: 4px; display: flex; align-items: center; justify-content: center;
+  transition: transform .15s;
+}
+.gc-yt:hover .yt-play-btn { transform: scale(1.08); }
+.yt-play-btn::after {
+  content: ''; width: 0; height: 0;
+  border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+  border-left: 8px solid #fff; margin-left: 2px;
+}
+.yt-info { flex: 1; padding: 9px 14px; display: flex; flex-direction: column; justify-content: center; }
+.yt-title {
+  font-size: 11px; font-weight: 500; color: var(--ink2);
+  display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+  line-height: 1.45; margin-bottom: 5px;
+}
+.yt-ch { font-size: 10px; color: var(--ink4); margin-bottom: 5px; }
+.yt-cta {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 600; color: var(--red);
+  letter-spacing: 0.3px;
+}
+.yt-cta::after { content: '→'; font-size: 11px; }
+
+/* ══════════════════════════════════════════
+   ISRAELI SECTION
+══════════════════════════════════════════ */
+.il-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+.il-card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--sh-sm);
+  padding: 18px 20px;
+  position: relative; overflow: hidden;
+}
+.il-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, #0038A8 0%, #FFFFFF 50%, #0038A8 100%);
+  opacity: 0.6;
+}
+.il-flag { font-size: 22px; margin-bottom: 8px; display: block; }
+.il-name {
+  font-size: 15px; font-weight: 600; color: var(--ink);
+  margin-bottom: 3px; letter-spacing: -0.2px;
+}
+.il-game {
+  font-size: 11px; color: var(--ink3); margin-bottom: 14px;
+  letter-spacing: 0.2px;
+}
+.il-stats { display: flex; gap: 18px; }
+.il-s { text-align: center; }
+.il-sv {
+  font-size: 22px; font-weight: 300; color: var(--il);
+  line-height: 1; letter-spacing: -0.5px;
+}
+.il-sl {
+  font-size: 9px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--ink4); margin-top: 3px;
+}
+
+/* ══════════════════════════════════════════
+   HISTORY SECTION
+══════════════════════════════════════════ */
+.hist-list { display: flex; flex-direction: column; gap: 12px; }
+.hist-card {
+  display: flex; align-items: center; gap: 24px;
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--radius-lg); box-shadow: var(--sh-sm);
+  padding: 18px 24px; position: relative; overflow: hidden;
+}
+.hist-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; bottom: 0; width: 3px;
+  background: var(--gold);
+}
+.hist-yr {
+  font-family: var(--serif);
+  font-size: 28px; font-weight: 400;
+  color: var(--gold); letter-spacing: -0.5px; flex-shrink: 0;
+  min-width: 54px;
+}
+.hist-sep { width: 1px; height: 32px; background: var(--rule); flex-shrink: 0; }
+.hist-fact { font-size: 13px; color: var(--ink2); line-height: 1.65; }
+
+/* ══════════════════════════════════════════
+   EMPTY STATES
+══════════════════════════════════════════ */
+.empty {
+  font-size: 13px; color: var(--ink4); padding: 14px 0;
+  font-style: italic;
+}
+
+/* ══════════════════════════════════════════
+   FOOTER
+══════════════════════════════════════════ */
+.footer {
+  border-top: 1px solid var(--rule2); margin-top: 48px;
+  padding: 20px 40px;
+  display: flex; align-items: center; gap: 16px;
+  max-width: 1240px; margin-left: auto; margin-right: auto;
+}
+.footer-txt { font-size: 11px; color: var(--ink4); }
+.footer-formula { margin-left: auto; font-size: 11px; color: var(--ink4); }
+
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loader">
+  <div class="loader-logo">NBA<span>.</span>Nightly</div>
+  <div class="loader-track"><div class="loader-fill"></div></div>
+  <div class="loader-sub">Loading dashboard</div>
+</div>
+
+<!-- Top bar -->
+<header class="topbar">
+  <div class="topbar-logo">NBA<span class="accent">.</span>Nightly</div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-date" id="topbar-date">—</div>
+  <div class="topbar-right">
+    <div class="topbar-pill" id="topbar-games">—</div>
+    <div class="live-badge"><div class="live-dot"></div>Live Data</div>
+  </div>
+</header>
+
+<!-- JSON panel -->
+<div id="json-panel">
+  <div class="jp-head">
+    <h2>Load Report</h2>
+    <p>Upload the JSON file generated by <code>nba_nightly_report.py</code></p>
+  </div>
+  <div class="jp-body">
+    <label class="jp-label">JSON file</label>
+    <div class="jp-row">
+      <input type="file" id="json-file" accept=".json" class="jp-file">
+      <button class="btn btn-primary" onclick="loadFromFile()">Load</button>
+    </div>
+    <div class="jp-or">or paste JSON</div>
+    <textarea id="json-paste" class="jp-textarea" placeholder='{ "date": "04/01/2025", "games": [...] }'></textarea>
+    <div class="jp-actions">
+      <button class="btn btn-primary" onclick="loadFromPaste()">Parse</button>
+      <button class="btn btn-ghost" onclick="loadDemo()">Load Demo</button>
+    </div>
+    <div class="jp-err" id="jp-err"></div>
+  </div>
+</div>
+
+<!-- Report -->
+<div id="report">
+  <div class="page">
+
+    <!-- MVP -->
+    <div class="mvp-card" id="mvp-card"></div>
+
+    <!-- Games -->
+    <div class="sec-wrap">
+      <div class="sec-head">
+        <div class="sec-label">Tonight's Games</div>
+        <div class="sec-chip" id="games-chip"></div>
+        <div class="sec-rule"></div>
+      </div>
+      <div class="games-grid" id="games-grid"></div>
+    </div>
+
+    <!-- Israelis -->
+    <div class="sec-wrap">
+      <div class="sec-head">
+        <div class="sec-label">🇮🇱 Israeli Players</div>
+        <div class="sec-chip" id="il-chip"></div>
+        <div class="sec-rule"></div>
+      </div>
+      <div id="il-section"></div>
+    </div>
+
+    <!-- History -->
+    <div class="sec-wrap">
+      <div class="sec-head">
+        <div class="sec-label">On This Day</div>
+        <div class="sec-chip" id="hist-chip"></div>
+        <div class="sec-rule"></div>
+      </div>
+      <div id="hist-section"></div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <div class="footer-txt">NBA Nightly · Powered by nba_api + YouTube Data API v3</div>
+    <div class="footer-formula">MVP = PTS + 0.8×REB + 1.5×AST + 1.5×STL + 1.5×BLK</div>
+  </div>
+</div>
+
+<script>
+/* ── Team abbreviations ─────────────────────────────── */
+const ABBR = {
+  "Atlanta Hawks":"ATL","Boston Celtics":"BOS","Brooklyn Nets":"BKN",
+  "Charlotte Hornets":"CHA","Chicago Bulls":"CHI","Cleveland Cavaliers":"CLE",
+  "Dallas Mavericks":"DAL","Denver Nuggets":"DEN","Detroit Pistons":"DET",
+  "Golden State Warriors":"GSW","Houston Rockets":"HOU","Indiana Pacers":"IND",
+  "Los Angeles Clippers":"LAC","Los Angeles Lakers":"LAL","Memphis Grizzlies":"MEM",
+  "Miami Heat":"MIA","Milwaukee Bucks":"MIL","Minnesota Timberwolves":"MIN",
+  "New Orleans Pelicans":"NOP","New York Knicks":"NYK","Oklahoma City Thunder":"OKC",
+  "Orlando Magic":"ORL","Philadelphia 76ers":"PHI","Phoenix Suns":"PHX",
+  "Portland Trail Blazers":"POR","Sacramento Kings":"SAC","San Antonio Spurs":"SAS",
+  "Toronto Raptors":"TOR","Utah Jazz":"UTA","Washington Wizards":"WAS",
+};
+const ab = n => ABBR[n] || (n||"").slice(0,3).toUpperCase();
+
+function fmtDate(s) {
+  try {
+    const [m,d,y] = s.split('/');
+    return new Date(+y,+m-1,+d).toLocaleDateString('en-US',
+      {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+  } catch { return s; }
+}
+
+/* ── Render ─────────────────────────────────────────── */
+function render(D) {
+  document.getElementById('loader').style.display = 'none';
+  document.getElementById('json-panel').style.display = 'none';
+  document.getElementById('report').style.display = 'block';
+
+  document.getElementById('topbar-date').textContent = fmtDate(D.date);
+  document.getElementById('topbar-games').textContent =
+    `${D.games.length} game${D.games.length !== 1 ? 's' : ''}`;
+  document.getElementById('games-chip').textContent =
+    `${D.games.length} game${D.games.length !== 1 ? 's' : ''}`;
+
+  renderMVP(D.daily_mvp);
+  renderGames(D.games);
+  renderIsraeli(D.israeli_players_tonight || []);
+  renderHistory(D.historical_facts || []);
+}
+
+function renderMVP(mvp) {
+  const el = document.getElementById('mvp-card');
+  if (!mvp) { el.innerHTML = '<div class="empty">No MVP data available.</div>'; return; }
+  el.innerHTML = `
+    <div class="mvp-icon">🏆</div>
+    <div class="mvp-copy">
+      <div class="mvp-eyebrow">Daily MVP</div>
+      <div class="mvp-name">${mvp.name}</div>
+      <div class="mvp-team">${mvp.team_abbr}</div>
+    </div>
+    <div class="mvp-divider"></div>
+    <div class="mvp-stats">
+      ${['pts','reb','ast','stl','blk'].map(k=>`
+        <div class="ms">
+          <div class="ms-v">${mvp[k]}</div>
+          <div class="ms-l">${k.toUpperCase()}</div>
+        </div>`).join('')}
+    </div>
+    <div class="mvp-formula">
+      <strong>${mvp.mvp_score.toFixed(1)}</strong><br>
+      Composite score
+    </div>`;
+}
+
+function renderGames(games) {
+  const grid = document.getElementById('games-grid');
+  grid.innerHTML = '';
+  games.forEach((g, i) => {
+    const teamBlocks = Object.entries(g.top_scorers || {}).map(([abbr, scorers]) => `
+      <div class="tb">
+        <div class="tb-lbl">${abbr}</div>
+        ${(scorers||[]).map((s, idx) => `
+          <div class="sc-row">
+            <div class="sc-num">${idx+1}</div>
+            <div class="sc-name">
+              ${s.name}
+              ${s.is_israeli ? '<span class="il-pill">🇮🇱 IL</span>' : ''}
+            </div>
+            <div class="sc-line">${s.reb}R · ${s.ast}A</div>
+            <div class="sc-pts">${s.pts}<small> PTS</small></div>
+          </div>`).join('')}
+      </div>`).join('');
+
+    const yt = g.youtube || {};
+    const card = document.createElement('div');
+    card.className = 'gc';
+    card.style.animationDelay = `${i * 0.07}s`;
+    card.innerHTML = `
+      <div class="gc-score">
+        <div class="gc-scoreline">
+          <div class="gc-team">
+            <div class="gc-abbr">${ab(g.away_team_name)}</div>
+            <div class="gc-full">${g.away_team_name}</div>
+          </div>
+          <div class="gc-mid">
+            <div class="gc-pts">
+              ${g.away_score}<span class="sep">–</span>${g.home_score}
+            </div>
+            <div class="gc-status">${g.game_status || 'Final'}</div>
+          </div>
+          <div class="gc-team r">
+            <div class="gc-abbr">${ab(g.home_team_name)}</div>
+            <div class="gc-full">${g.home_team_name}</div>
+          </div>
+        </div>
+      </div>
+      <div class="gc-body">${teamBlocks}</div>
+      <a class="gc-yt" href="${yt.url || '#'}" target="_blank" rel="noopener">
+        <div class="yt-thumb">
+          ${yt.thumbnail_url
+            ? `<img src="${yt.thumbnail_url}" alt="">`
+            : `<div class="yt-ph"><div class="yt-play-btn"></div></div>`}
+        </div>
+        <div class="yt-info">
+          <div class="yt-title">${yt.title || 'Watch Highlights'}</div>
+          ${yt.channel ? `<div class="yt-ch">${yt.channel}</div>` : ''}
+          <div class="yt-cta">Watch highlights</div>
+        </div>
+      </a>`;
+    grid.appendChild(card);
+  });
+}
+
+function renderIsraeli(players) {
+  document.getElementById('il-chip').textContent =
+    players.length ? `${players.length} active` : '0 tonight';
+  const el = document.getElementById('il-section');
+  if (!players.length) {
+    el.innerHTML = '<div class="empty">No Israeli players active tonight.</div>';
+    return;
+  }
+  el.innerHTML = `<div class="il-grid">${players.map(p => `
+    <div class="il-card">
+      <span class="il-flag">🇮🇱</span>
+      <div class="il-name">${p.name}</div>
+      <div class="il-game">${p.game || p.team_abbr}</div>
+      <div class="il-stats">
+        ${['pts','reb','ast','min'].map(k=>`
+          <div class="il-s">
+            <div class="il-sv">${p[k] ?? '—'}</div>
+            <div class="il-sl">${k.toUpperCase()}</div>
+          </div>`).join('')}
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+function renderHistory(facts) {
+  document.getElementById('hist-chip').textContent =
+    facts.length ? `${facts.length} fact${facts.length > 1 ? 's' : ''}` : '';
+  const el = document.getElementById('hist-section');
+  if (!facts.length) {
+    el.innerHTML = '<div class="empty">No historical facts for this date.</div>';
+    return;
+  }
+  el.innerHTML = `<div class="hist-list">${facts.map(f => `
+    <div class="hist-card">
+      <div class="hist-yr">${f.year}</div>
+      <div class="hist-sep"></div>
+      <div class="hist-fact">${f.fact}</div>
+    </div>`).join('')}</div>`;
+}
+
+/* ── Loaders ─────────────────────────────────────────── */
+function loadFromFile() {
+  const file = document.getElementById('json-file').files[0];
+  if (!file) { alert('Please select a JSON file.'); return; }
+  new FileReader().onload = e => parse(e.target.result),
+  document.getElementById('json-file').addEventListener('change', function() {
+    new FileReader().onload = e => parse(e.target.result),
+    document.getElementById('json-file').files[0] &&
+    (() => { const r = new FileReader(); r.onload = e => parse(e.target.result); r.readAsText(document.getElementById('json-file').files[0]); })();
+  });
+  const r = new FileReader();
+  r.onload = e => parse(e.target.result);
+  r.readAsText(file);
+}
+function loadFromPaste() {
+  const t = document.getElementById('json-paste').value.trim();
+  if (!t) { alert('Paste JSON first.'); return; }
+  parse(t);
+}
+function parse(text) {
+  const err = document.getElementById('jp-err');
+  try {
+    err.style.display = 'none';
+    render(JSON.parse(text));
+  } catch(e) {
+    err.style.display = 'block';
+    err.textContent = `Parse error: ${e.message}`;
+  }
+}
+
+/* ── Demo ────────────────────────────────────────────── */
+function loadDemo() {
+  render({
+    date:"03/30/2026",
+    daily_mvp:{name:"Shai Gilgeous-Alexander",team_abbr:"OKC",pts:42,reb:5,ast:8,stl:3,blk:1,mvp_score:64.0},
+    games:[
+      {game_id:"g1",away_team_name:"Oklahoma City Thunder",home_team_name:"Dallas Mavericks",
+       away_score:127,home_score:109,game_status:"Final",
+       top_scorers:{
+         "OKC":[
+           {name:"Shai Gilgeous-Alexander",team_abbr:"OKC",pts:42,reb:5,ast:8,stl:3,blk:1,is_israeli:false},
+           {name:"Jalen Williams",team_abbr:"OKC",pts:24,reb:6,ast:5,stl:1,blk:0,is_israeli:false}
+         ],
+         "DAL":[
+           {name:"Kyrie Irving",team_abbr:"DAL",pts:31,reb:4,ast:7,stl:2,blk:0,is_israeli:false},
+           {name:"Luka Dončić",team_abbr:"DAL",pts:28,reb:9,ast:11,stl:1,blk:1,is_israeli:false}
+         ]
+       },
+       youtube:{url:"https://www.youtube.com/results?search_query=Thunder+Mavericks+highlights",
+                title:"Thunder vs Mavericks FULL Game Highlights | SGA 42 PTS | NBA",channel:"NBA",thumbnail_url:""}
+      },
+      {game_id:"g2",away_team_name:"Boston Celtics",home_team_name:"Miami Heat",
+       away_score:118,home_score:103,game_status:"Final",
+       top_scorers:{
+         "BOS":[
+           {name:"Jayson Tatum",team_abbr:"BOS",pts:35,reb:9,ast:6,stl:1,blk:2,is_israeli:false},
+           {name:"Jaylen Brown",team_abbr:"BOS",pts:28,reb:7,ast:4,stl:2,blk:0,is_israeli:false}
+         ],
+         "MIA":[
+           {name:"Bam Adebayo",team_abbr:"MIA",pts:22,reb:13,ast:5,stl:2,blk:2,is_israeli:false},
+           {name:"Tyler Herro",team_abbr:"MIA",pts:26,reb:4,ast:6,stl:1,blk:0,is_israeli:false}
+         ]
+       },
+       youtube:{url:"https://www.youtube.com/results?search_query=Celtics+Heat+highlights",
+                title:"Celtics vs Heat FULL Highlights | Tatum 35 PTS | NBA",channel:"NBA",thumbnail_url:""}
+      },
+      {game_id:"g3",away_team_name:"Portland Trail Blazers",home_team_name:"Golden State Warriors",
+       away_score:112,home_score:119,game_status:"Final",
+       top_scorers:{
+         "POR":[
+           {name:"Deni Avdija",team_abbr:"POR",pts:23,reb:9,ast:5,stl:2,blk:1,is_israeli:true},
+           {name:"Scoot Henderson",team_abbr:"POR",pts:19,reb:4,ast:7,stl:1,blk:0,is_israeli:false}
+         ],
+         "GSW":[
+           {name:"Stephen Curry",team_abbr:"GSW",pts:38,reb:5,ast:9,stl:2,blk:0,is_israeli:false},
+           {name:"Draymond Green",team_abbr:"GSW",pts:10,reb:9,ast:11,stl:2,blk:2,is_israeli:false}
+         ]
+       },
+       youtube:{url:"https://www.youtube.com/results?search_query=Trail+Blazers+Warriors+highlights",
+                title:"Trail Blazers vs Warriors | Deni Avdija 23 PTS | Curry 38 PTS | NBA",channel:"NBA",thumbnail_url:""}
+      },
+      {game_id:"g4",away_team_name:"Milwaukee Bucks",home_team_name:"Cleveland Cavaliers",
+       away_score:101,home_score:114,game_status:"Final",
+       top_scorers:{
+         "MIL":[
+           {name:"Giannis Antetokounmpo",team_abbr:"MIL",pts:33,reb:14,ast:6,stl:1,blk:3,is_israeli:false},
+           {name:"Damian Lillard",team_abbr:"MIL",pts:24,reb:3,ast:9,stl:1,blk:0,is_israeli:false}
+         ],
+         "CLE":[
+           {name:"Donovan Mitchell",team_abbr:"CLE",pts:36,reb:5,ast:7,stl:2,blk:1,is_israeli:false},
+           {name:"Evan Mobley",team_abbr:"CLE",pts:18,reb:11,ast:4,stl:1,blk:3,is_israeli:false}
+         ]
+       },
+       youtube:{url:"https://www.youtube.com/results?search_query=Bucks+Cavaliers+highlights",
+                title:"Bucks vs Cavaliers HIGHLIGHTS | Mitchell 36, Giannis 33 | NBA",channel:"NBA",thumbnail_url:""}
+      }
+    ],
+    israeli_players_tonight:[
+      {name:"Deni Avdija",team_abbr:"POR",pts:23,reb:9,ast:5,stl:2,blk:1,min:"34:17",
+       game:"Portland Trail Blazers @ Golden State Warriors"}
+    ],
+    historical_facts:[
+      {year:1984,fact:"Kareem Abdul-Jabbar became the NBA's all-time leading scorer, surpassing Wilt Chamberlain's record of 31,419 career points."},
+      {year:1997,fact:"Michael Jordan scored 55 points against the New York Knicks at Madison Square Garden in one of his most iconic performances."}
+    ]
+  });
+}
+
+/* ── Dismiss loader ─────────────────────────────────── */
+setTimeout(() => {
+  const l = document.getElementById('loader');
+  l.style.transition = 'opacity .35s';
+  l.style.opacity = '0';
+  setTimeout(() => l.style.display = 'none', 350);
+}, 1400);
+</script>
+</body>
+</html>

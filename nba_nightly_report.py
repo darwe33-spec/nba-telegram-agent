@@ -10,15 +10,15 @@ FAVORITE_TEAMS  = ['Lakers', 'LA Lakers', 'Los Angeles Lakers']
 ISRAELI_PLAYERS = ['Deni Avdija', 'Ben Sheppard', 'Dani Wolf']
 
 HISTORY = {
-    '01-07': [{'year': 2003, 'fact': 'Tracy McGrady scored 62 points against Washington.'}],
-    '01-13': [{'year': 1990, 'fact': 'Michael Jordan scored 69 points against Cleveland.'}],
-    '01-22': [{'year': 2006, 'fact': 'Kobe Bryant scored 81 points against Toronto Raptors.'}],
-    '03-02': [{'year': 1962, 'fact': 'Wilt Chamberlain scored 100 points against the Knicks.'}],
-    '03-31': [{'year': 2016, 'fact': 'Stephen Curry hit his 400th three-pointer of the season.'}],
-    '04-01': [{'year': 1984, 'fact': 'Kareem Abdul-Jabbar became the all-time NBA scoring leader.'}],
-    '04-06': [{'year': 2017, 'fact': 'Russell Westbrook broke the single-season triple-double record.'}],
-    '06-11': [{'year': 1997, 'fact': 'Michael Jordan hit the game-winner in the famous Flu Game.'}],
-    '12-13': [{'year': 1983, 'fact': 'Detroit beat Denver 186-184 in the highest-scoring game ever.'}],
+    '01-07': [{'year': 2003, 'fact': 'Tracy McGrady קלע 62 נקודות נגד וושינגטון.'}],
+    '01-13': [{'year': 1990, 'fact': 'מייקל ג\'ורדן קלע 69 נקודות נגד קליבלנד.'}],
+    '01-22': [{'year': 2006, 'fact': 'קובי בראיינט קלע 81 נקודות נגד טורונטו ראפטורס.'}],
+    '03-02': [{'year': 1962, 'fact': 'וילט צ\'מברליין קלע 100 נקודות נגד הניקס.'}],
+    '03-31': [{'year': 2016, 'fact': 'סטפן קארי הכניס את התלת-נקודתית ה-400 שלו בעונה.'}],
+    '04-01': [{'year': 1984, 'fact': 'קארים עבד אל-ג\'בר הפך למלך הנקודות של ה-NBA.'}],
+    '04-06': [{'year': 2017, 'fact': 'ראסל ווסטברוק שבר את שיא הטריפל-דאבל בעונה.'}],
+    '06-11': [{'year': 1997, 'fact': 'מייקל ג\'ורדן הכניס את הסל המנצח במשחק ה-Flu Game.'}],
+    '12-13': [{'year': 1983, 'fact': 'דטרויט פיסטונס ניצחו 186-184 — המשחק עם הכי הרבה נקודות בהיסטוריה.'}],
 }
 
 
@@ -72,7 +72,6 @@ def get_nba_data():
                     score   = competitor.get('score', '0')
                     leaders = []
 
-                    # ── שליפת קלעים מובילים מתוך כל competitor ──
                     for stat_cat in competitor.get('leaders', []):
                         if stat_cat.get('name') == 'points':
                             for ldr in stat_cat.get('leaders', [])[:2]:
@@ -131,79 +130,91 @@ def get_nba_data():
 
 
 def build_message(games, all_players, il_players):
-    date_str  = (datetime.now() - timedelta(days=1)).strftime('%d/%m/%Y')
-    today_key = datetime.now().strftime('%m-%d')
+    try:
+        date_obj  = datetime.now() - timedelta(days=1)
+        days_he   = ['שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת', 'ראשון']
+        months_he = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני',
+                     'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר']
+        day_name  = days_he[date_obj.weekday()]
+        date_str  = f'יום {day_name}, {date_obj.day} ב{months_he[date_obj.month - 1]} {date_obj.year}'
+    except Exception:
+        date_str  = (datetime.now() - timedelta(days=1)).strftime('%d/%m/%Y')
+
+    today_key = (datetime.now() - timedelta(days=1)).strftime('%m-%d')
     lines     = []
 
-    lines.append('<b>NBA Nightly Report</b>')
-    lines.append(f'Date: {date_str}')
-    lines.append('=' * 22)
+    # כותרת
+    lines.append('🏀 <b>NBA NIGHTLY REPORT</b>')
+    lines.append(f'📅 {date_str}')
+    lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
 
-    # MVP
+    # ביצוע הלילה
     if all_players:
         mvp = max(all_players, key=lambda x: x['pts'])
         lines.append('')
-        lines.append('<b>Performance of the Night</b>')
-        lines.append(f'<b>{mvp["name"]}</b>  ({mvp["team"]})')
-        lines.append(f'{int(mvp["pts"])} points')
-        lines.append('=' * 22)
+        lines.append('🌟 <b>ביצוע הלילה</b>')
+        lines.append('━━━━━━━━━━━━━━')
+        lines.append(f'<b>{mvp["name"]}</b>')
+        lines.append(f'{mvp["team"]}  •  {int(mvp["pts"])} PTS')
 
-    # Games
+    # משחקים
+    lines.append('')
+    lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
     if not games:
-        lines.append('')
-        lines.append('No games last night.')
+        lines.append('😴 לא היו משחקים הלילה.')
     else:
-        lines.append('')
-        lines.append(f'<b>{len(games)} Games Last Night</b>')
+        lines.append(f'🎯 <b>{len(games)} משחקים הלילה</b>')
+        lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
 
         for g in games:
             t0, t1 = g['teams'][0], g['teams'][1]
             s0, s1 = int(t0['score']), int(t1['score'])
             sc0    = f'<b>{s0}</b>' if s0 > s1 else str(s0)
             sc1    = f'<b>{s1}</b>' if s1 > s0 else str(s1)
-            star   = ' STAR' if g['is_fav'] else ''
+            star   = '⭐ ' if g['is_fav'] else ''
 
             lines.append('')
-            lines.append(f'<b>{t0["name"]} vs {t1["name"]}</b>{star}')
-            lines.append(f'{sc0} - {sc1}   {g["status"]}')
+            lines.append(f'{star}<b>{t0["name"]} vs {t1["name"]}</b>')
+            lines.append(f'   🏆 {sc0} — {sc1}  •  {g["status"]}')
 
             for team in [t0, t1]:
                 if team['leaders']:
-                    top    = team['leaders'][0]
-                    second = (f',  {team["leaders"][1]["short"]} '
-                              f'{team["leaders"][1]["val"]}') \
+                    top = team['leaders'][0]
+                    second = (f'  •  {team["leaders"][1]["short"]} '
+                              f'{team["leaders"][1]["val"]} PTS') \
                              if len(team['leaders']) > 1 else ''
-                    lines.append(f'  {top["short"]} {top["val"]}{second}')
+                    lines.append(f'   📊 {top["short"]} {top["val"]} PTS{second}')
 
             yt = search_youtube(f'NBA {t0["name"]} vs {t1["name"]} highlights')
-            lines.append(f'  Highlights: {yt}')
+            lines.append(f'   <a href="{yt}">▶️ Highlights</a>')
+            lines.append('──────────────────────')
 
+    # ישראלים
     lines.append('')
-    lines.append('=' * 22)
-
-    # Israelis
-    lines.append('')
-    lines.append('<b>Israeli Players Tonight</b>')
+    lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
+    lines.append('🇮🇱 <b>ישראלים הלילה</b>')
+    lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
     if il_players:
         for p in il_players:
-            lines.append(f'  {p["name"]}  ({p["team"]})  {int(p["pts"])} pts')
+            lines.append(f'<b>{p["name"]}</b>  •  {p["team"]}')
+            lines.append(f'{int(p["pts"])} PTS')
     else:
-        lines.append('  No Israeli players tonight.')
+        lines.append('לא שיחק אף ישראלי הלילה.')
 
-    lines.append('')
-    lines.append('=' * 22)
-
-    # Historical fact
+    # היסטוריה
     facts = HISTORY.get(today_key, [])
     if facts:
         lines.append('')
-        lines.append('<b>On This Day in NBA History</b>')
+        lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
+        lines.append('📜 <b>היום לפני בהיסטוריה</b>')
+        lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
         for f in facts:
-            lines.append(f'  {f["year"]}: {f["fact"]}')
-        lines.append('=' * 22)
+            lines.append(f'{f["year"]}: {f["fact"]}')
 
     lines.append('')
-    lines.append('<i>NBA Nightly Bot</i>')
+    lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
+    lines.append('🤖 <i>NBA Nightly Bot</i>')
+
     return '\n'.join(lines)
 
 
@@ -215,15 +226,15 @@ def send_telegram(text):
         resp = requests.post(
             f'https://api.telegram.org/bot{TOKEN}/sendMessage',
             json={
-                'chat_id':    CHAT_ID,
-                'text':       text,
-                'parse_mode': 'HTML',
-                'disable_web_page_preview': True,
+                'chat_id':                  CHAT_ID,
+                'text':                     text,
+                'parse_mode':               'HTML',
+                'disable_web_page_preview': False,
             },
             timeout=15,
         )
         if resp.ok:
-            print('Message sent successfully!')
+            print('ההודעה נשלחה בהצלחה!')
             return True
         else:
             print(f'Telegram error {resp.status_code}: {resp.text}')
@@ -234,9 +245,8 @@ def send_telegram(text):
 
 
 if __name__ == '__main__':
-    print('Fetching NBA data...')
+    print('שולף נתוני NBA...')
     games, players, il = get_nba_data()
-    print(f'Games: {len(games)}  |  Players: {len(players)}  |  Israelis: {len(il)}')
-
+    print(f'משחקים: {len(games)}  |  שחקנים: {len(players)}  |  ישראלים: {len(il)}')
     msg = build_message(games, players, il)
     send_telegram(msg)
