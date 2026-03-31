@@ -1,6 +1,8 @@
 name: NBA Nightly Dashboard
 
 on:
+  schedule:
+    - cron: "0 4 * * *"
   workflow_dispatch:
 
 jobs:
@@ -24,14 +26,8 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         run: |
           echo "Checking if Secrets are loaded..."
           if [ -z "$TELEGRAM_TOKEN" ]; then echo "TOKEN IS MISSING"; else echo "TOKEN IS SET"; fi
           python nba_nightly_report.py
-
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
-          publish_branch: gh-pages
