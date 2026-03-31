@@ -9,18 +9,6 @@ YOUTUBE_API_KEY = os.getenv('YOUTUBE_API_KEY', '')
 FAVORITE_TEAMS  = ['Lakers', 'LA Lakers', 'Los Angeles Lakers']
 ISRAELI_PLAYERS = ['Deni Avdija', 'Ben Sheppard', 'Dani Wolf']
 
-HISTORY = {
-    '01-07': [{'year': 2003, 'fact': 'Tracy McGrady קלע 62 נקודות נגד וושינגטון.'}],
-    '01-13': [{'year': 1990, 'fact': 'מייקל ג\'ורדן קלע 69 נקודות נגד קליבלנד.'}],
-    '01-22': [{'year': 2006, 'fact': 'קובי בראיינט קלע 81 נקודות נגד טורונטו ראפטורס.'}],
-    '03-02': [{'year': 1962, 'fact': 'וילט צ\'מברליין קלע 100 נקודות נגד הניקס.'}],
-    '03-31': [{'year': 2016, 'fact': 'סטפן קארי הכניס את התלת-נקודתית ה-400 שלו בעונה.'}],
-    '04-01': [{'year': 1984, 'fact': 'קארים עבד אל-ג\'בר הפך למלך הנקודות של ה-NBA.'}],
-    '04-06': [{'year': 2017, 'fact': 'ראסל ווסטברוק שבר את שיא הטריפל-דאבל בעונה.'}],
-    '06-11': [{'year': 1997, 'fact': 'מייקל ג\'ורדן הכניס את הסל המנצח במשחק ה-Flu Game.'}],
-    '12-13': [{'year': 1983, 'fact': 'דטרויט פיסטונס ניצחו 186-184 — המשחק עם הכי הרבה נקודות בהיסטוריה.'}],
-}
-
 
 def search_youtube(query):
     if not YOUTUBE_API_KEY:
@@ -40,6 +28,33 @@ def search_youtube(query):
         print(f'YouTube error: {e}')
     q = query.replace(' ', '+')
     return f'https://www.youtube.com/results?search_query={q}'
+
+
+def get_nba_history(date_obj):
+    """שולף עובדה היסטורית NBA מ-Wikipedia לפי תאריך."""
+    try:
+        month = date_obj.strftime('%B')
+        day   = date_obj.day
+        url   = f'https://en.wikipedia.org/api/rest_v1/feed/onthisday/events/{date_obj.month}/{day}'
+        resp  = requests.get(url, timeout=10)
+        if not resp.ok:
+            return None
+        events = resp.json().get('events', [])
+        nba_keywords = ['NBA', 'basketball', 'Lakers', 'Celtics', 'Bulls',
+                        'Warriors', 'Heat', 'Knicks', 'points', 'championship',
+                        'Finals', 'All-Star', 'draft', 'scored', 'record']
+        for event in events:
+            text = event.get('text', '')
+            if any(kw.lower() in text.lower() for kw in nba_keywords):
+                year = event.get('year', '')
+                # קצר ל-120 תווים אם ארוך מדי
+                if len(text) > 120:
+                    text = text[:117] + '...'
+                return {'year': year, 'fact': text}
+        return None
+    except Exception as e:
+        print(f'Wikipedia error: {e}')
+        return None
 
 
 def get_nba_data():
@@ -129,7 +144,7 @@ def get_nba_data():
     return games_data, all_players, il_players
 
 
-def build_message(games, all_players, il_players):
+def build_message(games, all_players, il_players, history_fact):
     try:
         date_obj  = datetime.now() - timedelta(days=1)
         days_he   = ['שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת', 'ראשון']
@@ -140,8 +155,7 @@ def build_message(games, all_players, il_players):
     except Exception:
         date_str  = (datetime.now() - timedelta(days=1)).strftime('%d/%m/%Y')
 
-    today_key = (datetime.now() - timedelta(days=1)).strftime('%m-%d')
-    lines     = []
+    lines = []
 
     # כותרת
     lines.append('🏀 <b>NBA NIGHTLY REPORT</b>')
@@ -179,7 +193,7 @@ def build_message(games, all_players, il_players):
 
             for team in [t0, t1]:
                 if team['leaders']:
-                    top = team['leaders'][0]
+                    top    = team['leaders'][0]
                     second = (f'  •  {team["leaders"][1]["short"]} '
                               f'{team["leaders"][1]["val"]} PTS') \
                              if len(team['leaders']) > 1 else ''
@@ -201,15 +215,13 @@ def build_message(games, all_players, il_players):
     else:
         lines.append('לא שיחק אף ישראלי הלילה.')
 
-    # היסטוריה
-    facts = HISTORY.get(today_key, [])
-    if facts:
+    # היסטוריה — רק אם נמצאה עובדה
+    if history_fact:
         lines.append('')
         lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
         lines.append('📜 <b>היום לפני בהיסטוריה</b>')
         lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
-        for f in facts:
-            lines.append(f'{f["year"]}: {f["fact"]}')
+        lines.append(f'{history_fact["year"]}: {history_fact["fact"]}')
 
     lines.append('')
     lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
@@ -248,5 +260,14 @@ if __name__ == '__main__':
     print('שולף נתוני NBA...')
     games, players, il = get_nba_data()
     print(f'משחקים: {len(games)}  |  שחקנים: {len(players)}  |  ישראלים: {len(il)}')
-    msg = build_message(games, players, il)
+
+    date_obj = datetime.now() - timedelta(days=1)
+    print('שולף עובדה היסטורית מ-Wikipedia...')
+    history_fact = get_nba_history(date_obj)
+    if history_fact:
+        print(f'נמצא: {history_fact["year"]} - {history_fact["fact"][:50]}...')
+    else:
+        print('לא נמצאה עובדה היסטורית להיום.')
+
+    msg = build_message(games, players, il, history_fact)
     send_telegram(msg)
