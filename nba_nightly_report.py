@@ -2,10 +2,14 @@ import os
 import requests
 from datetime import datetime, timedelta
 
+# הגדרת משתנים מה-Secrets של GitHub
 TOKEN = os.getenv('TELEGRAM_TOKEN')
 CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-# הקישור שלך יהיה: https://[YOUR_USERNAME].github.io/[YOUR_REPO_NAME]/
-DASHBOARD_URL = f"https://{os.getenv('GITHUB_REPOSITORY_OWNER')}.github.io/{os.getenv('GITHUB_REPOSITORY').split('/')[-1]}/"
+
+# יצירת הקישור האוטומטי לדשבורד שלך
+repo_name = os.getenv('GITHUB_REPOSITORY', '').split('/')[-1]
+user_name = os.getenv('GITHUB_REPOSITORY_OWNER', '')
+DASHBOARD_URL = f"https://{user_name}.github.io/{repo_name}/"
 
 def get_nba_data():
     yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y%m%d')
@@ -31,65 +35,81 @@ def get_nba_data():
                 'logo': team['team']['logo'],
                 'leaders': []
             }
-            # משיכת 2 קלעים מובילים
+            # שליפת 2 קלעים מובילים לכל קבוצה
             for leader_cat in comp.get('leaders', []):
                 if leader_cat['name'] == 'points':
                     team_leaders = [l for l in leader_cat['leaders'] if l['athlete']['team']['id'] == team['id']]
                     for l in team_leaders[:2]:
                         t_info['leaders'].append({'name': l['athlete']['shortName'], 'val': l['displayValue']})
-                        all_players.append({'name': l['athlete']['displayName'], 'points': float(l['displayValue']), 'team': t_info['name']})
+                        all_players.append({
+                            'name': l['athlete']['displayName'], 
+                            'points': float(l['displayValue']), 
+                            'team': t_info['name']
+                        })
             game_info['teams'].append(t_info)
         games_data.append(game_info)
         
     return games_data, all_players
 
 def create_html(games, mvp):
-    if not os.path.exists('public'): os.makedirs('public')
-    
+    # יצירת קובץ ה-HTML בתיקייה הראשית
     html_content = f"""
-    <html>
+    <html dir="rtl">
     <head>
         <meta charset="utf-8">
         <title>NBA Dashboard</title>
         <style>
-            body {{ font-family: sans-serif; background: #f4f4f9; text-align: center; }}
-            .game-card {{ background: white; margin: 10px auto; padding: 20px; width: 80%; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
-            .mvp {{ background: #ffd700; padding: 20px; border-radius: 10px; display: inline-block; margin: 20px; }}
+            body {{ font-family: -apple-system, sans-serif; background: #f4f4f9; text-align: center; padding: 20px; }}
+            .game-card {{ background: white; margin: 15px auto; padding: 20px; width: 90%; max-width: 600px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
+            .mvp-box {{ background: linear-gradient(135deg, #ffd700, #ffae00); color: white; padding: 25px; border-radius: 15px; display: inline-block; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3); }}
+            h2 {{ color: #333; }}
+            .score {{ font-size: 24px; font-weight: bold; color: #1a1a1a; }}
         </style>
     </head>
     <body>
-        <h1>NBA Daily Dashboard - {datetime.now().strftime('%d/%m/%Y')}</h1>
-        <div class="mvp">⭐ <b>MVP הלילה:</b> {mvp['name']} ({mvp['team']}) - {int(mvp['points'])} נקודות</div>
-        <div id="games">
+        <h1>NBA Daily Summary - {datetime.now().strftime('%d/%m/%Y')}</h1>
+        <div class="mvp-box">
+            <h2 style="margin:0">⭐ MVP הלילה ⭐</h2>
+            <p style="font-size: 20px;"><b>{mvp['name']}</b> ({mvp['team']})</p>
+            <p style="font-size: 24px; font-weight: bold;">{int(mvp['points'])} נקודות</p>
+        </div>
     """
     for g in games:
         html_content += f"""
         <div class="game-card">
-            <h3>{g['name']} ({g['status']})</h3>
-            <p><b>{g['teams'][0]['name']} {g['teams'][0]['score']} - {g['teams'][1]['score']} {g['teams'][1]['name']}</b></p>
-            <p><small>{g['teams'][0]['name']}: {g['teams'][0]['leaders'][0]['name']} ({g['teams'][0]['leaders'][0]['val']}), {g['teams'][0]['leaders'][1]['name']} ({g['teams'][0]['leaders'][1]['val']})</small></p>
-            <p><small>{g['teams'][1]['name']}: {g['teams'][1]['leaders'][0]['name']} ({g['teams'][1]['leaders'][0]['val']}), {g['teams'][1]['leaders'][1]['name']} ({g['teams'][1]['leaders'][1]['val']})</small></p>
+            <h3>{g['name']}</h3>
+            <p class="score">{g['teams'][0]['score']} - {g['teams'][1]['score']}</p>
+            <p style="color: #666;">{g['status']}</p>
+            <hr>
+            <p><b>{g['teams'][0]['name']}:</b> {g['teams'][0]['leaders'][0]['name']} ({g['teams'][0]['leaders'][0]['val']}), {g['teams'][0]['leaders'][1]['name']} ({g['teams'][0]['leaders'][1]['val']})</p>
+            <p><b>{g['teams'][1]['name']}:</b> {g['teams'][1]['leaders'][0]['name']} ({g['teams'][1]['leaders'][0]['val']}), {g['teams'][1]['leaders'][1]['name']} ({g['teams'][1]['leaders'][1]['val']})</p>
         </div>
         """
-    html_content += "</div></body></html>"
+    html_content += "</body></html>"
     
-    with open('public/index.html', 'w', encoding='utf-8') as f:
+    with open('index.html', 'w', encoding='utf-8') as f:
         f.write(html_content)
 
 def send_telegram(games, mvp):
-    msg = f"📊 <b>NBA DASHBOARD | {datetime.now().strftime('%d/%m/%Y')}</b>\n\n"
-    msg += f"⭐ <b>MVP:</b> {mvp['name']} ({int(mvp['points'])} נק')\n\n"
-    for g in games[:4]:
-        msg += f"• {g['name']} ({g['status']})\n"
-        msg += f"  🏆 {g['teams'][0]['leaders'][0]['name']} ({g['teams'][0]['leaders'][0]['val']}) | {g['teams'][1]['leaders'][0]['name']} ({g['teams'][1]['leaders'][0]['val']})\n"
+    if not TOKEN or not CHAT_ID:
+        print("Error: Telegram credentials missing.")
+        return
+
+    msg = f"📊 <b>NBA NIGHTLY REPORT | {datetime.now().strftime('%d/%m/%Y')}</b>\n\n"
+    msg += f"⭐ <b>MVP הלילה:</b> {mvp['name']} ({mvp['team']})\n🔥 {int(mvp['points'])} נקודות!\n\n"
     
-    msg += f"\n💻 <a href='{DASHBOARD_URL}'>לדשבורד המלא המעודכן 🖥️</a>"
+    for g in games[:5]:
+        msg += f"🏀 <b>{g['name']}</b>\n"
+        msg += f"🏆 {g['teams'][0]['leaders'][0]['name']} ({g['teams'][0]['leaders'][0]['val']}) | {g['teams'][1]['leaders'][0]['name']} ({g['teams'][1]['leaders'][0]['val']})\n\n"
+    
+    msg += f"🖥️ <a href='{DASHBOARD_URL}'>לדשבורד המלא והמעוצב לחץ כאן</a>"
+    
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     requests.post(url, json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"})
 
 if __name__ == "__main__":
     games, players = get_nba_data()
     if players:
-        mvp = max(players, key=lambda x: x['points'])
-        create_html(games, mvp)
-        send_telegram(games, mvp)
+        mvp_player = max(players, key=lambda x: x['points'])
+        create_html(games, mvp_player)
+        send_telegram(games, mvp_player)
