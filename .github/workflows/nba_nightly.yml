@@ -1,0 +1,64 @@
+
+on:
+  schedule:
+    - cron: "0 5 * * *"   # 05:00 UTC = 07:00 Israel (UTC+2) / 08:00 IDT (UTC+3 summer)
+ 
+  # Allows you to trigger the workflow manually from the GitHub Actions tab
+  workflow_dispatch:
+    inputs:
+      date_override:
+        description: "Run for a specific date (MM/DD/YYYY). Leave empty for yesterday."
+        required: false
+        default: ""
+ 
+jobs:
+  send-report:
+    name: Fetch NBA data and send Telegram message
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+ 
+    steps:
+      # ── 1. Checkout repository ───────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+ 
+      # ── 2. Set up Python ─────────────────────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+ 
+      # ── 3. Install dependencies ──────────────────────────────────────────
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install nba_api requests
+ 
+      # ── 4. Run the script ────────────────────────────────────────────────
+      #    All secrets are injected as environment variables — never in code.
+      - name: Run NBA Nightly Report
+        env:
+          TELEGRAM_TOKEN:   ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          YOUTUBE_API_KEY:  ${{ secrets.YOUTUBE_API_KEY }}
+        run: |
+          if [ -n "${{ github.event.inputs.date_override }}" ]; then
+            # Manual trigger with a specific date
+            python nba_nightly_report.py "${{ github.event.inputs.date_override }}"
+          else
+            # Scheduled run — uses yesterday's date automatically
+            python nba_nightly_report.py
+          fi
+ 
+      # ── 5. Notify on failure ─────────────────────────────────────────────
+      - name: Notify Telegram on failure
+        if: failure()
+        env:
+          TELEGRAM_TOKEN:   ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            -d text="⚠️ NBA Nightly Report failed on $(date '+%Y-%m-%d'). Check GitHub Actions for details." \
+            -d parse_mode="HTML"
