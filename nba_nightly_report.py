@@ -2,17 +2,13 @@ import os
 import requests
 from datetime import datetime, timedelta
 
-TOKEN            = os.getenv('TELEGRAM_TOKEN')
-CHAT_ID          = os.getenv('TELEGRAM_CHAT_ID')
-YOUTUBE_API_KEY  = os.getenv('YOUTUBE_API_KEY', '')
+TOKEN           = os.getenv('TELEGRAM_TOKEN')
+CHAT_ID         = os.getenv('TELEGRAM_CHAT_ID')
+YOUTUBE_API_KEY = os.getenv('YOUTUBE_API_KEY', '')
 
-# -- Your favorite team (appears first with a star) --
-FAVORITE_TEAMS = ['Lakers', 'LA Lakers', 'Los Angeles Lakers']
-
-# -- Israeli players to track --
+FAVORITE_TEAMS  = ['Lakers', 'LA Lakers', 'Los Angeles Lakers']
 ISRAELI_PLAYERS = ['Deni Avdija', 'Ben Sheppard', 'Dani Wolf']
 
-# -- Historical facts (MM-DD format) --
 HISTORY = {
     '01-07': [{'year': 2003, 'fact': 'Tracy McGrady scored 62 points against Washington.'}],
     '01-13': [{'year': 1990, 'fact': 'Michael Jordan scored 69 points against Cleveland.'}],
@@ -31,63 +27,19 @@ def search_youtube(query):
         q = query.replace(' ', '+')
         return f'https://www.youtube.com/results?search_query={q}'
     try:
-        resp = requests.get(
+        resp  = requests.get(
             'https://www.googleapis.com/youtube/v3/search',
-            params={
-                'part': 'snippet', 'q': query, 'type': 'video',
-                'maxResults': 1, 'key': YOUTUBE_API_KEY,
-                'order': 'relevance',
-            },
+            params={'part': 'snippet', 'q': query, 'type': 'video',
+                    'maxResults': 1, 'key': YOUTUBE_API_KEY, 'order': 'relevance'},
             timeout=10,
         )
         items = resp.json().get('items', [])
         if items:
-            vid = items[0]['id']['videoId']
-            return f'https://www.youtube.com/watch?v={vid}'
+            return f'https://www.youtube.com/watch?v={items[0]["id"]["videoId"]}'
     except Exception as e:
         print(f'YouTube error: {e}')
     q = query.replace(' ', '+')
     return f'https://www.youtube.com/results?search_query={q}'
-
-
-def get_standings():
-    url = 'https://site.api.espn.com/apis/v2/sports/basketball/nba/standings'
-    try:
-        data = requests.get(url, timeout=15).json()
-        east = {'playoff': [], 'playin': [], 'rest': []}
-        west = {'playoff': [], 'playin': [], 'rest': []}
-
-        for conf in data.get('children', []):
-            conf_name = conf.get('name', '')
-            is_east   = 'East' in conf_name
-
-            entries = conf.get('standings', {}).get('entries', [])
-            for i, entry in enumerate(entries):
-                rank   = i + 1
-                team   = entry.get('team', {}).get('shortDisplayName', '?')
-                stats  = {s['name']: s.get('displayValue', '?') for s in entry.get('stats', [])}
-                wins   = stats.get('wins',   '?')
-                losses = stats.get('losses', '?')
-                gb     = stats.get('gamesBehind', '-')
-                gb_str = f'GB: {gb}' if gb != '-' else 'Leader'
-                row    = f'{rank}. {team}  {wins}-{losses}  {gb_str}'
-
-                if rank <= 6:
-                    cat = 'playoff'
-                elif rank <= 10:
-                    cat = 'playin'
-                else:
-                    cat = 'rest'
-
-                if is_east:
-                    east[cat].append(row)
-                else:
-                    west[cat].append(row)
-
-        return east, west
-    except Exception as e:
-        print(f'Standings error: {e}')
-        return None, None
 
 
 def get_nba_data():
@@ -112,34 +64,43 @@ def get_nba_data():
                              .get('type', {})
                              .get('shortDetail', 'Final'))
 
-            leaders_by_team = {}
-            for cat in comp.get('leaders', []):
-                if cat.get('name') == 'points':
-                    for ldr in cat.get('leaders', []):
-                        try:
-                            tid = ldr['athlete']['team']['id']
-                            leaders_by_team.setdefault(tid, [])
-                            if len(leaders_by_team[tid]) < 2:
-                                full  = ldr['athlete'].get('displayName', '?')
-                                short = ldr['athlete'].get('shortName', '?')
-                                pts   = float(ldr.get('value', 0))
-                                leaders_by_team[tid].append({
-                                    'full':  full,
-                                    'short': short,
-                                    'val':   ldr.get('displayValue', '0'),
-                                    'pts':   pts,
-                                })
-                        except Exception:
-                            continue
-
             teams = []
-            for team in comp.get('competitors', []):
+            for competitor in comp.get('competitors', []):
                 try:
-                    tid     = team['team']['id']
-                    tname   = team['team'].get('shortDisplayName', '?')
-                    tfull   = team['team'].get('displayName', tname)
-                    score   = team.get('score', '0')
-                    leaders = leaders_by_team.get(tid, [])
+                    tname   = competitor['team'].get('shortDisplayName', '?')
+                    tfull   = competitor['team'].get('displayName', tname)
+                    score   = competitor.get('score', '0')
+                    leaders = []
+
+                    # ── שליפת קלעים מובילים מתוך כל competitor ──
+                    for stat_cat in competitor.get('leaders', []):
+                        if stat_cat.get('name') == 'points':
+                            for ldr in stat_cat.get('leaders', [])[:2]:
+                                try:
+                                    athlete = ldr.get('athlete', {})
+                                    full    = athlete.get('displayName', '?')
+                                    short   = athlete.get('shortName', '?')
+                                    pts     = float(ldr.get('value', 0))
+                                    val     = ldr.get('displayValue', '0')
+                                    leaders.append({
+                                        'full':  full,
+                                        'short': short,
+                                        'val':   val,
+                                        'pts':   pts,
+                                    })
+                                    player_entry = {
+                                        'name': full,
+                                        'pts':  pts,
+                                        'val':  val,
+                                        'team': tname,
+                                    }
+                                    all_players.append(player_entry)
+                                    if any(il in full for il in ISRAELI_PLAYERS):
+                                        il_players.append({
+                                            **player_entry, 'game': game_name
+                                        })
+                                except Exception:
+                                    continue
 
                     teams.append({
                         'name':    tname,
@@ -147,17 +108,6 @@ def get_nba_data():
                         'score':   score,
                         'leaders': leaders,
                     })
-
-                    for ldr in leaders:
-                        player_entry = {
-                            'name': ldr['full'],
-                            'pts':  ldr['pts'],
-                            'val':  ldr['val'],
-                            'team': tname,
-                        }
-                        all_players.append(player_entry)
-                        if any(il in ldr['full'] for il in ISRAELI_PLAYERS):
-                            il_players.append({**player_entry, 'game': game_name})
                 except Exception:
                     continue
 
@@ -180,7 +130,7 @@ def get_nba_data():
     return games_data, all_players, il_players
 
 
-def build_message(games, all_players, il_players, east, west):
+def build_message(games, all_players, il_players):
     date_str  = (datetime.now() - timedelta(days=1)).strftime('%d/%m/%Y')
     today_key = datetime.now().strftime('%m-%d')
     lines     = []
@@ -189,6 +139,7 @@ def build_message(games, all_players, il_players, east, west):
     lines.append(f'Date: {date_str}')
     lines.append('=' * 22)
 
+    # MVP
     if all_players:
         mvp = max(all_players, key=lambda x: x['pts'])
         lines.append('')
@@ -197,12 +148,14 @@ def build_message(games, all_players, il_players, east, west):
         lines.append(f'{int(mvp["pts"])} points')
         lines.append('=' * 22)
 
+    # Games
     if not games:
         lines.append('')
         lines.append('No games last night.')
     else:
         lines.append('')
         lines.append(f'<b>{len(games)} Games Last Night</b>')
+
         for g in games:
             t0, t1 = g['teams'][0], g['teams'][1]
             s0, s1 = int(t0['score']), int(t1['score'])
@@ -217,16 +170,18 @@ def build_message(games, all_players, il_players, east, west):
             for team in [t0, t1]:
                 if team['leaders']:
                     top    = team['leaders'][0]
-                    second = (f',  {team["leaders"][1]["short"]} {team["leaders"][1]["val"]}')  \
+                    second = (f',  {team["leaders"][1]["short"]} '
+                              f'{team["leaders"][1]["val"]}') \
                              if len(team['leaders']) > 1 else ''
                     lines.append(f'  {top["short"]} {top["val"]}{second}')
 
-            yt_url = search_youtube(f'NBA {t0["name"]} vs {t1["name"]} highlights')
-            lines.append(f'  Highlights: {yt_url}')
+            yt = search_youtube(f'NBA {t0["name"]} vs {t1["name"]} highlights')
+            lines.append(f'  Highlights: {yt}')
 
-        lines.append('')
-        lines.append('=' * 22)
+    lines.append('')
+    lines.append('=' * 22)
 
+    # Israelis
     lines.append('')
     lines.append('<b>Israeli Players Tonight</b>')
     if il_players:
@@ -234,33 +189,11 @@ def build_message(games, all_players, il_players, east, west):
             lines.append(f'  {p["name"]}  ({p["team"]})  {int(p["pts"])} pts')
     else:
         lines.append('  No Israeli players tonight.')
+
+    lines.append('')
     lines.append('=' * 22)
 
-    if east and west:
-        for conf_name, conf in [('EAST', east), ('WEST', west)]:
-            lines.append('')
-            lines.append(f'<b>{conf_name} Standings</b>')
-
-            if conf['playoff']:
-                lines.append('<b>Playoff (1-6)</b>')
-                for row in conf['playoff']:
-                    lines.append(f'  {row}')
-
-            if conf['playin']:
-                lines.append('<b>Play-In (7-10)</b>')
-                for row in conf['playin']:
-                    lines.append(f'  {row}')
-
-            if conf['rest']:
-                lines.append('<b>Out (11-15)</b>')
-                for row in conf['rest'][:3]:
-                    lines.append(f'  {row}')
-                if len(conf['rest']) > 3:
-                    lines.append(f'  ... and {len(conf["rest"]) - 3} more')
-
-        lines.append('')
-        lines.append('=' * 22)
-
+    # Historical fact
     facts = HISTORY.get(today_key, [])
     if facts:
         lines.append('')
@@ -305,8 +238,5 @@ if __name__ == '__main__':
     games, players, il = get_nba_data()
     print(f'Games: {len(games)}  |  Players: {len(players)}  |  Israelis: {len(il)}')
 
-    print('Fetching standings...')
-    east, west = get_standings()
-
-    msg = build_message(games, players, il, east, west)
+    msg = build_message(games, players, il)
     send_telegram(msg)
