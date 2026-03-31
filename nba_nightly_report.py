@@ -4,83 +4,91 @@ from datetime import datetime, timedelta
 
 TOKEN = os.getenv('TELEGRAM_TOKEN')
 CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+DASHBOARD_URL = "כאן_הקישור_לדשבורד_שלך" # עדכן את הלינק שלך כאן
 
 def send_telegram(msg):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {
-        "chat_id": CHAT_ID, 
-        "text": msg, 
-        "parse_mode": "HTML",
-        "disable_web_page_preview": False
-    }
+    payload = {"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"}
     requests.post(url, json=payload)
 
 def get_nba_dashboard():
-    yesterday_obj = datetime.now() - timedelta(days=1)
-    yesterday_str = yesterday_obj.strftime('%Y%m%d')
-    today_display = datetime.now().strftime('%d/%m/%Y')
-    
-    # יצירת קישור ליוטיוב עבור התקצירים של אתמול
-    youtube_query = f"NBA+highlights+{yesterday_obj.strftime('%Y-%m-%d')}".replace("-", "+")
-    youtube_link = f"https://www.youtube.com/results?search_query={youtube_query}"
-    
-    url = f"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates={yesterday_str}"
+    yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y%m%d')
+    url = f"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates={yesterday}"
     
     try:
         data = requests.get(url, timeout=20).json()
         events = data.get('events', [])
+        if not events: return "🏀 אין משחקים לדיווח מהלילה."
+
+        report = f"📊 <b><u>NBA DAILY DASHBOARD | {datetime.now().strftime('%d/%m/%Y')}</u></b>\n\n"
         
-        if not events:
-            return f"<b>🏀 NBA Dashboard - {today_display}</b>\n\nלא נמצאו משחקים בלילה האחרון."
+        all_players_stats = []
 
-        report = f"📊 <b><u>NBA DAILY DASHBOARD | {today_display}</u></b>\n\n"
-
-        # 1. תוצאות בולטות
-        report += "<b>📌 תוצאות בולטות:</b>\n"
-        for event in events[:4]:
-            teams = event['competitions'][0]['competitors']
+        # 1. תוצאות וקלעים (2 מכל קבוצה)
+        report += "<b>📌 תוצאות וקלעים מובילים:</b>\n"
+        for event in events:
+            comp = event['competitions'][0]
+            teams = comp['competitors']
+            
+            # זיהוי בית וחוץ
             home = next(t for t in teams if t['homeAway'] == 'home')
             away = next(t for t in teams if t['homeAway'] == 'away')
-            status = event['status']['type']['shortDetail']
-            report += f"• {away['team']['shortDisplayName']} <b>{away['score']}</b> - <b>{home['score']}</b> {home['team']['shortDisplayName']} ({status})\n"
+            
+            report += f"• {away['team']['shortDisplayName']} <b>{away['score']}</b> - <b>{home['score']}</b> {home['team']['shortDisplayName']}\n"
+            
+            # שליפת 2 קלעים מכל קבוצה
+            for team in [away, home]:
+                team_name = team['team']['shortDisplayName']
+                # שליפת לידרים לפי קטגוריית נקודות
+                points_leaders = [l for l in comp.get('leaders', []) if l['name'] == 'points']
+                if points_leaders:
+                    # לוקחים את 2 הראשונים של אותה קבוצה
+                    leaders = [athlete for athlete in points_leaders[0]['leaders'] if athlete['athlete']['team']['id'] == team['id']]
+                    leaders_text = ", ".join([f"{l['athlete']['shortName']} ({l['displayValue']})" for l in leaders[:2]])
+                    report += f"   ▫️ {team_name}: {leaders_text}\n"
 
-        # 2. ה-MVP של הלילה
-        report += "\n<b>🌟 המצטיין (MVP):</b>\n"
-        mvp = "נתוני שחקנים בטעינה..."
-        max_score = 0
-        for event in events:
-            for leader_cat in event['competitions'][0].get('leaders', []):
-                if leader_cat['name'] == 'points':
-                    leader = leader_cat['leaders'][0]
-                    score = float(leader['displayValue'])
-                    if score > max_score:
-                        max_score = score
-                        mvp = f"<b>{leader['athlete']['displayName']}</b> עם {leader['displayValue']} נקודות"
-        report += mvp + "\n"
+            # איסוף נתונים לחישוב MVP (לפי מדד EFF)
+            for leader_cat in comp.get('leaders', []):
+                for athlete_data in leader_cat.get('leaders', []):
+                    player = athlete_data['athlete']
+                    # כאן אנחנו שומרים את הנתונים לחישוב ה-MVP הכללי
+                    all_players_stats.append({
+                        'name': player['displayName'],
+                        'points': float(athlete_data['displayValue']),
+                        'team': player['team']['shortDisplayName']
+                    })
 
-        # 3. זווית ישראלית
+        # 2. ה-MVP של הלילה (השחקן עם הניקוד הגבוה ביותר מכל המשחקים)
+        if all_players_stats:
+            top_mvp = max(all_players_stats, key=lambda x: x['points'])
+            report += f"\n<b>🌟 MVP הלילה:</b>\n{top_mvp['name']} ({top_mvp['team']}) עם {int(top_mvp['points'])} נקודות!\n"
+
+        # 3. הופעה מפתיעה
+        # לוגיקה: השחקן שקלע הכי הרבה נקודות והוא לא ה-MVP
+        surprises = [p for p in all_players_stats if p['name'] != top_mvp['name']]
+        if surprises:
+            surprise_player = max(surprises, key=lambda x: x['points'])
+            report += f"\n<b>⚡ ההופעה המפתיעה:</b>\n{surprise_player['name']} התעלה מעל הציפיות עם {int(surprise_player['points'])} נק'!\n"
+
+        # 4. זווית ישראלית (אבדיה, שרף, וולף)
         report += "\n<b>🇮🇱 הנציגים שלנו:</b>\n"
         israelis = {"Trail Blazers": "דני אבדיה", "Nets": "בן שרף / דני וולף"}
-        found = False
+        found_israeli = False
         for event in events:
             for team_key, name in israelis.items():
                 if team_key in event['name']:
-                    report += f"✅ {name} (במדי {team_key})\n"
-                    found = True
-        if not found: report += "לא שיחקו ישראלים הלילה.\n"
+                    report += f"✅ {name} שיחק הלילה במדי {team_key}\n"
+                    found_israeli = True
+        if not found_israeli: report += "לא היו ישראלים על הפרקט הלילה.\n"
 
-        # 4. רגע היסטורי (לפי 31 במרץ)
-        history_text = "ב-1991, מייקל ג'ורדן קלע 27 נקודות והוביל את הבולס לניצחון ה-60 שלהם בעונה."
-        report += f"\n<b>📜 רגע היסטורי (31/03):</b>\n{history_text}\n"
-
-        # 5. יציאה ליוטיוב - הקישור שביקשת
-        report += f"\n<b>📺 צפה בתקצירי הלילה:</b>\n<a href='{youtube_link}'>לחץ כאן לצפייה ביוטיוב 🎬</a>"
+        # 5. קישורים
+        report += f"\n📺 <a href='https://www.youtube.com/results?search_query=NBA+highlights+{yesterday}'>תקצירי הלילה ביוטיוב 🎬</a>"
+        report += f"\n💻 <a href='{DASHBOARD_URL}'>לדשבורד המלא 🖥️</a>"
 
         return report
 
     except Exception as e:
-        return f"⚠️ שגיאה בעיבוד הדשבורד: {str(e)}"
+        return f"⚠️ שגיאה בבניית הדשבורד: {str(e)}"
 
 if __name__ == "__main__":
-    dashboard = get_nba_dashboard()
-    send_telegram(dashboard)
+    send_telegram(get_nba_dashboard())
