@@ -62,3 +62,4 @@ jobs:
             -d chat_id="${TELEGRAM_CHAT_ID}" \
             -d text="⚠️ NBA Nightly Report failed on $(date '+%Y-%m-%d'). Check GitHub Actions for details." \
             -d parse_mode="HTML"
+
