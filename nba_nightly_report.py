@@ -37,7 +37,7 @@ def get_nba_history(date_obj):
         resp = requests.get(url, timeout=10)
         if not resp.ok:
             return None
-        events      = resp.json().get('events', [])
+        events       = resp.json().get('events', [])
         nba_keywords = ['NBA', 'basketball', 'Lakers', 'Celtics', 'Bulls',
                         'Warriors', 'Heat', 'Knicks', 'points', 'championship',
                         'Finals', 'All-Star', 'draft', 'scored', 'record']
@@ -52,6 +52,44 @@ def get_nba_history(date_obj):
     except Exception as e:
         print(f'Wikipedia error: {e}')
         return None
+
+
+def get_player_stats(game_id):
+    """שולף סטטיסטיקות מלאות לכל שחקן במשחק."""
+    try:
+        url  = f'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event={game_id}'
+        resp = requests.get(url, timeout=15)
+        if not resp.ok:
+            return []
+        data    = resp.json()
+        players = []
+        for box in data.get('boxscore', {}).get('players', []):
+            team_abbr = box.get('team', {}).get('abbreviation', '?')
+            for stat_group in box.get('statistics', []):
+                for athlete in stat_group.get('athletes', []):
+                    try:
+                        name  = athlete.get('athlete', {}).get('displayName', '?')
+                        stats = athlete.get('stats', [])
+                        # סדר הסטטיסטיקות: MIN, FG, 3PT, FT, OREB, DREB, REB, AST, STL, BLK, TO, PF, +/-, PTS
+                        if len(stats) >= 14:
+                            pts = float(stats[13]) if stats[13] != '--' else 0
+                            reb = float(stats[6])  if stats[6]  != '--' else 0
+                            ast = float(stats[7])  if stats[7]  != '--' else 0
+                            mn  = stats[0] if stats[0] != '--' else '0'
+                            players.append({
+                                'name': name,
+                                'team': team_abbr,
+                                'pts':  pts,
+                                'reb':  reb,
+                                'ast':  ast,
+                                'min':  mn,
+                            })
+                    except Exception:
+                        continue
+        return players
+    except Exception as e:
+        print(f'Stats error for game {game_id}: {e}')
+        return []
 
 
 def get_nba_data():
@@ -71,6 +109,7 @@ def get_nba_data():
     for event in data.get('events', []):
         try:
             comp      = event['competitions'][0]
+            game_id   = event.get('id', '')
             game_name = event.get('name', 'Unknown')
             status    = (event.get('status', {})
                              .get('type', {})
@@ -99,17 +138,12 @@ def get_nba_data():
                                         'val':   val,
                                         'pts':   pts,
                                     })
-                                    player_entry = {
+                                    all_players.append({
                                         'name': full,
                                         'pts':  pts,
                                         'val':  val,
                                         'team': tname,
-                                    }
-                                    all_players.append(player_entry)
-                                    if any(il in full for il in ISRAELI_PLAYERS):
-                                        il_players.append({
-                                            **player_entry, 'game': game_name
-                                        })
+                                    })
                                 except Exception:
                                     continue
 
@@ -122,16 +156,25 @@ def get_nba_data():
                 except Exception:
                     continue
 
+            # שליפת ישראלים מהסטטיסטיקות המלאות של המשחק
+            if game_id:
+                full_stats = get_player_stats(game_id)
+                for p in full_stats:
+                    if any(il in p['name'] for il in ISRAELI_PLAYERS):
+                        il_players.append({**p, 'game': game_name})
+                        print(f'נמצא ישראלי: {p["name"]} - {int(p["pts"])} PTS')
+
             if len(teams) == 2:
                 is_fav = any(
                     any(fav.lower() in t['full'].lower() for fav in FAVORITE_TEAMS)
                     for t in teams
                 )
                 games_data.append({
-                    'name':   game_name,
-                    'status': status,
-                    'teams':  teams,
-                    'is_fav': is_fav,
+                    'game_id': game_id,
+                    'name':    game_name,
+                    'status':  status,
+                    'teams':   teams,
+                    'is_fav':  is_fav,
                 })
         except Exception as e:
             print(f'Skipping game: {e}')
@@ -154,12 +197,10 @@ def build_message(games, all_players, il_players, history_fact):
 
     lines = []
 
-    # כותרת
     lines.append('🏀 <b>NBA NIGHTLY REPORT</b>')
     lines.append(f'📅 {date_str}')
     lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
 
-    # ביצוע הלילה
     if all_players:
         mvp = max(all_players, key=lambda x: x['pts'])
         lines.append('')
@@ -168,7 +209,6 @@ def build_message(games, all_players, il_players, history_fact):
         lines.append(f'<b>{mvp["name"]}</b>')
         lines.append(f'{mvp["team"]}  •  {int(mvp["pts"])} PTS')
 
-    # משחקים
     lines.append('')
     lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
     if not games:
@@ -200,7 +240,6 @@ def build_message(games, all_players, il_players, history_fact):
             lines.append(f'   <a href="{yt}">▶️ Highlights</a>')
             lines.append('──────────────────────')
 
-    # ישראלים
     lines.append('')
     lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
     lines.append('🇮🇱 <b>ישראלים הלילה</b>')
@@ -208,11 +247,10 @@ def build_message(games, all_players, il_players, history_fact):
     if il_players:
         for p in il_players:
             lines.append(f'<b>{p["name"]}</b>  •  {p["team"]}')
-            lines.append(f'{int(p["pts"])} PTS')
+            lines.append(f'{int(p["pts"])} PTS  •  {int(p["reb"])} REB  •  {int(p["ast"])} AST  •  {p["min"]} MIN')
     else:
         lines.append('לא שיחק אף ישראלי הלילה.')
 
-    # היסטוריה
     if history_fact:
         lines.append('')
         lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
@@ -258,9 +296,10 @@ if __name__ == '__main__':
     games, players, il = get_nba_data()
     print(f'משחקים: {len(games)}  |  שחקנים: {len(players)}  |  ישראלים: {len(il)}')
 
-    date_obj = datetime.now() - timedelta(days=1)
+    # אירוע היסטורי של היום (לא אתמול)
+    today = datetime.now()
     print('שולף עובדה היסטורית מ-Wikipedia...')
-    history_fact = get_nba_history(date_obj)
+    history_fact = get_nba_history(today)
     if history_fact:
         print(f'נמצא: {history_fact["year"]} - {history_fact["fact"][:50]}...')
     else:
