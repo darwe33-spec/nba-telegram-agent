@@ -7,7 +7,7 @@ CHAT_ID         = os.getenv('TELEGRAM_CHAT_ID')
 YOUTUBE_API_KEY = os.getenv('YOUTUBE_API_KEY', '')
 
 FAVORITE_TEAMS  = ['Lakers', 'LA Lakers', 'Los Angeles Lakers']
-ISRAELI_PLAYERS = ['Deni Avdija', 'Ben Sheppard', 'Dani Wolf']
+ISRAELI_PLAYERS = ['Avdija', 'Saraf', 'Wolf']
 
 
 def search_youtube(query):
@@ -31,15 +31,13 @@ def search_youtube(query):
 
 
 def get_nba_history(date_obj):
-    """שולף עובדה היסטורית NBA מ-Wikipedia לפי תאריך."""
     try:
-        month = date_obj.strftime('%B')
-        day   = date_obj.day
-        url   = f'https://en.wikipedia.org/api/rest_v1/feed/onthisday/events/{date_obj.month}/{day}'
-        resp  = requests.get(url, timeout=10)
+        day  = date_obj.day
+        url  = f'https://en.wikipedia.org/api/rest_v1/feed/onthisday/events/{date_obj.month}/{day}'
+        resp = requests.get(url, timeout=10)
         if not resp.ok:
             return None
-        events = resp.json().get('events', [])
+        events      = resp.json().get('events', [])
         nba_keywords = ['NBA', 'basketball', 'Lakers', 'Celtics', 'Bulls',
                         'Warriors', 'Heat', 'Knicks', 'points', 'championship',
                         'Finals', 'All-Star', 'draft', 'scored', 'record']
@@ -47,7 +45,6 @@ def get_nba_history(date_obj):
             text = event.get('text', '')
             if any(kw.lower() in text.lower() for kw in nba_keywords):
                 year = event.get('year', '')
-                # קצר ל-120 תווים אם ארוך מדי
                 if len(text) > 120:
                     text = text[:117] + '...'
                 return {'year': year, 'fact': text}
@@ -215,7 +212,7 @@ def build_message(games, all_players, il_players, history_fact):
     else:
         lines.append('לא שיחק אף ישראלי הלילה.')
 
-    # היסטוריה — רק אם נמצאה עובדה
+    # היסטוריה
     if history_fact:
         lines.append('')
         lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
