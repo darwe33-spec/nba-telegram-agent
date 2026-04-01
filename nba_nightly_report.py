@@ -63,27 +63,38 @@ def get_player_stats(game_id):
             return []
         data    = resp.json()
         players = []
+
         for box in data.get('boxscore', {}).get('players', []):
             team_abbr = box.get('team', {}).get('abbreviation', '?')
             for stat_group in box.get('statistics', []):
+                # מצא את הסדר הנכון של הסטטיסטיקות לפי הכותרות
+                labels = stat_group.get('labels', [])
+                try:
+                    pts_idx = labels.index('PTS')
+                    reb_idx = labels.index('REB')
+                    ast_idx = labels.index('AST')
+                    min_idx = labels.index('MIN') if 'MIN' in labels else 0
+                except ValueError:
+                    continue
+
                 for athlete in stat_group.get('athletes', []):
                     try:
                         name  = athlete.get('athlete', {}).get('displayName', '?')
                         stats = athlete.get('stats', [])
-                        # סדר הסטטיסטיקות: MIN, FG, 3PT, FT, OREB, DREB, REB, AST, STL, BLK, TO, PF, +/-, PTS
-                        if len(stats) >= 14:
-                            pts = float(stats[13]) if stats[13] != '--' else 0
-                            reb = float(stats[6])  if stats[6]  != '--' else 0
-                            ast = float(stats[7])  if stats[7]  != '--' else 0
-                            mn  = stats[0] if stats[0] != '--' else '0'
-                            players.append({
-                                'name': name,
-                                'team': team_abbr,
-                                'pts':  pts,
-                                'reb':  reb,
-                                'ast':  ast,
-                                'min':  mn,
-                            })
+                        if len(stats) <= max(pts_idx, reb_idx, ast_idx):
+                            continue
+                        pts = float(stats[pts_idx]) if stats[pts_idx] not in ('--', '') else 0
+                        reb = float(stats[reb_idx]) if stats[reb_idx] not in ('--', '') else 0
+                        ast = float(stats[ast_idx]) if stats[ast_idx] not in ('--', '') else 0
+                        mn  = stats[min_idx] if stats[min_idx] not in ('--', '') else '0'
+                        players.append({
+                            'name': name,
+                            'team': team_abbr,
+                            'pts':  pts,
+                            'reb':  reb,
+                            'ast':  ast,
+                            'min':  mn,
+                        })
                     except Exception:
                         continue
         return players
@@ -156,7 +167,6 @@ def get_nba_data():
                 except Exception:
                     continue
 
-            # שליפת ישראלים מהסטטיסטיקות המלאות של המשחק
             if game_id:
                 full_stats = get_player_stats(game_id)
                 for p in full_stats:
@@ -296,7 +306,6 @@ if __name__ == '__main__':
     games, players, il = get_nba_data()
     print(f'משחקים: {len(games)}  |  שחקנים: {len(players)}  |  ישראלים: {len(il)}')
 
-    # אירוע היסטורי של היום (לא אתמול)
     today = datetime.now()
     print('שולף עובדה היסטורית מ-Wikipedia...')
     history_fact = get_nba_history(today)
