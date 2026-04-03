@@ -54,8 +54,53 @@ def get_nba_history(date_obj):
         return None
 
 
+def get_standings():
+    """שולף טבלת ליגה מ-ESPN."""
+    try:
+        url  = 'https://site.api.espn.com/apis/v2/sports/basketball/nba/standings'
+        resp = requests.get(url, timeout=15)
+        if not resp.ok:
+            return None, None
+
+        data = resp.json()
+        east = {'playoff': [], 'playin': []}
+        west = {'playoff': [], 'playin': []}
+
+        for conf in data.get('children', []):
+            conf_name = conf.get('name', '')
+            is_east   = 'East' in conf_name
+            target    = east if is_east else west
+
+            entries = conf.get('standings', {}).get('entries', [])
+            # מיון לפי אחוז ניצחונות
+            def sort_key(e):
+                for s in e.get('stats', []):
+                    if s['name'] == 'winPercent':
+                        return -float(s.get('value', 0))
+                return 0
+
+            entries_sorted = sorted(entries, key=sort_key)
+
+            for rank, entry in enumerate(entries_sorted, 1):
+                team  = entry.get('team', {}).get('shortDisplayName', '?')
+                stats = {s['name']: s.get('displayValue', '?')
+                         for s in entry.get('stats', [])}
+                wins   = stats.get('wins',   '?')
+                losses = stats.get('losses', '?')
+                row    = f'{rank}. {team}  {wins}-{losses}'
+
+                if rank <= 6:
+                    target['playoff'].append(row)
+                elif rank <= 10:
+                    target['playin'].append(row)
+
+        return east, west
+    except Exception as e:
+        print(f'Standings error: {e}')
+        return None, None
+
+
 def get_player_stats(game_id):
-    """שולף סטטיסטיקות מלאות לכל שחקן במשחק."""
     try:
         url  = f'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event={game_id}'
         resp = requests.get(url, timeout=15)
@@ -67,7 +112,6 @@ def get_player_stats(game_id):
         for box in data.get('boxscore', {}).get('players', []):
             team_abbr = box.get('team', {}).get('abbreviation', '?')
             for stat_group in box.get('statistics', []):
-                # מצא את הסדר הנכון של הסטטיסטיקות לפי הכותרות
                 labels = stat_group.get('labels', [])
                 try:
                     pts_idx = labels.index('PTS')
@@ -99,7 +143,7 @@ def get_player_stats(game_id):
                         continue
         return players
     except Exception as e:
-        print(f'Stats error for game {game_id}: {e}')
+        print(f'Stats error: {e}')
         return []
 
 
@@ -180,139 +224,3 @@ def get_nba_data():
                     for t in teams
                 )
                 games_data.append({
-                    'game_id': game_id,
-                    'name':    game_name,
-                    'status':  status,
-                    'teams':   teams,
-                    'is_fav':  is_fav,
-                })
-        except Exception as e:
-            print(f'Skipping game: {e}')
-            continue
-
-    games_data.sort(key=lambda g: (0 if g['is_fav'] else 1))
-    return games_data, all_players, il_players
-
-
-def build_message(games, all_players, il_players, history_fact):
-    try:
-        date_obj  = datetime.now() - timedelta(days=1)
-        days_he   = ['שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת', 'ראשון']
-        months_he = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני',
-                     'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר']
-        day_name  = days_he[date_obj.weekday()]
-        date_str  = f'יום {day_name}, {date_obj.day} ב{months_he[date_obj.month - 1]} {date_obj.year}'
-    except Exception:
-        date_str  = (datetime.now() - timedelta(days=1)).strftime('%d/%m/%Y')
-
-    lines = []
-
-    lines.append('🏀 <b>NBA NIGHTLY REPORT</b>')
-    lines.append(f'📅 {date_str}')
-    lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
-
-    if all_players:
-        mvp = max(all_players, key=lambda x: x['pts'])
-        lines.append('')
-        lines.append('🌟 <b>ביצוע הלילה</b>')
-        lines.append('━━━━━━━━━━━━━━')
-        lines.append(f'<b>{mvp["name"]}</b>')
-        lines.append(f'{mvp["team"]}  •  {int(mvp["pts"])} PTS')
-
-    lines.append('')
-    lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
-    if not games:
-        lines.append('😴 לא היו משחקים הלילה.')
-    else:
-        lines.append(f'🎯 <b>{len(games)} משחקים הלילה</b>')
-        lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
-
-        for g in games:
-            t0, t1 = g['teams'][0], g['teams'][1]
-            s0, s1 = int(t0['score']), int(t1['score'])
-            sc0    = f'<b>{s0}</b>' if s0 > s1 else str(s0)
-            sc1    = f'<b>{s1}</b>' if s1 > s0 else str(s1)
-            star   = '⭐ ' if g['is_fav'] else ''
-
-            lines.append('')
-            lines.append(f'{star}<b>{t0["name"]} vs {t1["name"]}</b>')
-            lines.append(f'   🏆 {sc0} — {sc1}  •  {g["status"]}')
-
-            for team in [t0, t1]:
-                if team['leaders']:
-                    top    = team['leaders'][0]
-                    second = (f'  •  {team["leaders"][1]["short"]} '
-                              f'{team["leaders"][1]["val"]} PTS') \
-                             if len(team['leaders']) > 1 else ''
-                    lines.append(f'   📊 {top["short"]} {top["val"]} PTS{second}')
-
-            yt = search_youtube(f'NBA {t0["name"]} vs {t1["name"]} highlights')
-            lines.append(f'   <a href="{yt}">▶️ Highlights</a>')
-            lines.append('──────────────────────')
-
-    lines.append('')
-    lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
-    lines.append('🇮🇱 <b>ישראלים הלילה</b>')
-    lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
-    if il_players:
-        for p in il_players:
-            lines.append(f'<b>{p["name"]}</b>  •  {p["team"]}')
-            lines.append(f'{int(p["pts"])} PTS  •  {int(p["reb"])} REB  •  {int(p["ast"])} AST  •  {p["min"]} MIN')
-    else:
-        lines.append('לא שיחק אף ישראלי הלילה.')
-
-    if history_fact:
-        lines.append('')
-        lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
-        lines.append('📜 <b>היום לפני בהיסטוריה</b>')
-        lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
-        lines.append(f'{history_fact["year"]}: {history_fact["fact"]}')
-
-    lines.append('')
-    lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
-    lines.append('🤖 <i>NBA Nightly Bot</i>')
-
-    return '\n'.join(lines)
-
-
-def send_telegram(text):
-    if not TOKEN or not CHAT_ID:
-        print('ERROR: Missing TELEGRAM_TOKEN or TELEGRAM_CHAT_ID')
-        return False
-    try:
-        resp = requests.post(
-            f'https://api.telegram.org/bot{TOKEN}/sendMessage',
-            json={
-                'chat_id':                  CHAT_ID,
-                'text':                     text,
-                'parse_mode':               'HTML',
-                'disable_web_page_preview': False,
-            },
-            timeout=15,
-        )
-        if resp.ok:
-            print('ההודעה נשלחה בהצלחה!')
-            return True
-        else:
-            print(f'Telegram error {resp.status_code}: {resp.text}')
-            return False
-    except Exception as e:
-        print(f'Send failed: {e}')
-        return False
-
-
-if __name__ == '__main__':
-    print('שולף נתוני NBA...')
-    games, players, il = get_nba_data()
-    print(f'משחקים: {len(games)}  |  שחקנים: {len(players)}  |  ישראלים: {len(il)}')
-
-    today = datetime.now()
-    print('שולף עובדה היסטורית מ-Wikipedia...')
-    history_fact = get_nba_history(today)
-    if history_fact:
-        print(f'נמצא: {history_fact["year"]} - {history_fact["fact"][:50]}...')
-    else:
-        print('לא נמצאה עובדה היסטורית להיום.')
-
-    msg = build_message(games, players, il, history_fact)
-    send_telegram(msg)
