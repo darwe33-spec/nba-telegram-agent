@@ -11,7 +11,7 @@ ISRAELI_PLAYERS = ['Avdija', 'Saraf', 'Wolf']
 
 def get_youtube_link(team1, team2):
     query = f'{team1}+{team2}+highlights'
-    return f'https://www.youtube.com/@NBA/search?query={query}'
+    return f'https://www.youtube.com/results?search_query={query}'
 
 
 def get_nba_history(date_obj):
@@ -64,10 +64,11 @@ def get_standings():
             entries_sorted = sorted(entries, key=sort_key)
 
             for rank, entry in enumerate(entries_sorted, 1):
-                team   = entry.get('team', {}).get('abbreviation', '?')
+                team   = entry.get('team', {}).get('shortDisplayName', '?')
                 stats  = {s['name']: s.get('displayValue', '?') for s in entry.get('stats', [])}
                 wins   = stats.get('wins', '?')
-                row    = f'{team} {wins}'
+                losses = stats.get('losses', '?')
+                row    = f'{rank}. {team}  {wins}-{losses}'
                 if rank <= 6:
                     target['playoff'].append(row)
                 elif rank <= 10:
@@ -223,8 +224,6 @@ def build_message(games, all_players, il_players, history_fact, east, west):
     try:
         date_obj  = datetime.now() - timedelta(days=1)
         days_he   = ['שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת', 'ראשון']
-        months_he = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני',
-                     'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר']
         day_name  = days_he[date_obj.weekday()]
         date_str  = f'{day_name} {date_obj.day}.{date_obj.month}.{str(date_obj.year)[2:]}'
     except Exception:
@@ -232,7 +231,7 @@ def build_message(games, all_players, il_players, history_fact, east, west):
 
     lines = []
 
-    # כותרת קצרה
+    # כותרת
     lines.append(f'🏀 <b>NBA | {date_str}</b>')
 
     # MVP
@@ -242,7 +241,7 @@ def build_message(games, all_players, il_players, history_fact, east, west):
 
     lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
 
-    # משחקים — דחוס
+    # משחקים
     if not games:
         lines.append('😴 לא היו משחקים הלילה.')
     else:
@@ -250,22 +249,20 @@ def build_message(games, all_players, il_players, history_fact, east, west):
             t0, t1 = g['teams'][0], g['teams'][1]
             s0, s1 = int(t0['score']), int(t1['score'])
             star   = '⭐ ' if g['is_fav'] else ''
-            yt     = get_youtube_link(t0['abbr'], t1['abbr'])
+            yt     = get_youtube_link(t0['name'], t1['name'])
 
-            # שורת תוצאה
             if s0 > s1:
                 score_line = f'<b>{t0["abbr"]} {s0}</b>-{s1} {t1["abbr"]}'
             else:
                 score_line = f'{t0["abbr"]} {s0}-<b>{s1} {t1["abbr"]}</b>'
 
-            # קלעים
             scorers = []
             for team in [t0, t1]:
                 if team['leaders']:
                     top = team['leaders'][0]
                     scorers.append(f'{top["short"]} {top["val"]}')
-
             scorers_line = ' • '.join(scorers)
+
             lines.append(f'{star}{score_line} | <a href="{yt}">▶️</a>')
             lines.append(f'   {scorers_line}')
 
@@ -278,25 +275,29 @@ def build_message(games, all_players, il_players, history_fact, east, west):
     else:
         lines.append('🇮🇱 לא שיחק ישראלי הלילה')
 
-    lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
-
-    # טבלה דחוסה
+    # טבלה — רשימה
     if east and west:
-        e_playoff = ' '.join(east['playoff'])
-        e_playin  = ' '.join(east['playin'])
-        w_playoff = ' '.join(west['playoff'])
-        w_playin  = ' '.join(west['playin'])
-        lines.append(f'🏙 🏆 {e_playoff}')
-        lines.append(f'   ⚡ {e_playin}')
-        lines.append(f'🌅 🏆 {w_playoff}')
-        lines.append(f'   ⚡ {w_playin}')
         lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
+        lines.append('📊 <b>טבלת הליגה</b>')
+
+        for conf_name, conf in [('🏙 מזרח', east), ('🌅 מערב', west)]:
+            lines.append('')
+            lines.append(f'<b>{conf_name}</b>')
+            if conf['playoff']:
+                lines.append('🏆 פלייאוף')
+                for row in conf['playoff']:
+                    lines.append(f'  {row}')
+            if conf['playin']:
+                lines.append('⚡ פלאיין')
+                for row in conf['playin']:
+                    lines.append(f'  {row}')
 
     # היסטוריה
     if history_fact:
-        lines.append(f'📜 {history_fact["year"]}: {history_fact["fact"]}')
         lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
+        lines.append(f'📜 {history_fact["year"]}: {history_fact["fact"]}')
 
+    lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
     lines.append('🤖 <i>NBA Nightly Bot</i>')
 
     return '\n'.join(lines)
@@ -313,7 +314,7 @@ def send_telegram(text):
                 'chat_id':                  CHAT_ID,
                 'text':                     text,
                 'parse_mode':               'HTML',
-                'disable_web_page_preview': True,
+                'disable_web_page_preview': False,
             },
             timeout=15,
         )
