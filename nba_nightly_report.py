@@ -340,4 +340,43 @@ def send_telegram(text):
         resp = requests.post(
             f'https://api.telegram.org/bot{TOKEN}/sendMessage',
             json={
-                'chat_id':
+                'chat_id':                  CHAT_ID,
+                'text':                     text,
+                'parse_mode':               'HTML',
+                'disable_web_page_preview': False,
+            },
+            timeout=15,
+        )
+        if resp.ok:
+            print('ההודעה נשלחה בהצלחה!')
+            return True
+        else:
+            print(f'Telegram error {resp.status_code}: {resp.text}')
+            return False
+    except Exception as e:
+        print(f'Send failed: {e}')
+        return False
+
+
+if __name__ == '__main__':
+    print('שולף נתוני NBA...')
+    games, players, il = get_nba_data()
+    print(f'משחקים: {len(games)}  |  שחקנים: {len(players)}  |  ישראלים: {len(il)}')
+
+    print('שולף טבלה...')
+    east, west = get_standings()
+    if east:
+        print('טבלה נטענה בהצלחה')
+    else:
+        print('שגיאה בטעינת הטבלה')
+
+    today = datetime.now()
+    print('שולף עובדה היסטורית...')
+    history_fact = get_nba_history(today)
+    if history_fact:
+        print(f'נמצא: {history_fact["year"]}')
+    else:
+        print('לא נמצאה עובדה היסטורית.')
+
+    msg = build_message(games, players, il, history_fact, east, west)
+    send_telegram(msg)
