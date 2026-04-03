@@ -4,14 +4,47 @@ from datetime import datetime, timedelta
 
 TOKEN           = os.getenv('TELEGRAM_TOKEN')
 CHAT_ID         = os.getenv('TELEGRAM_CHAT_ID')
+YOUTUBE_API_KEY = os.getenv('YOUTUBE_API_KEY', '')
 
 FAVORITE_TEAMS  = ['Lakers', 'LA Lakers', 'Los Angeles Lakers']
 ISRAELI_PLAYERS = ['Avdija', 'Saraf', 'Wolf']
 
 
-def get_youtube_link(team1, team2):
-    query = f'{team1}+{team2}+highlights'
-    return f'https://www.youtube.com/results?search_query={query}'
+def search_youtube(query):
+    """מחזיר קישור ישיר לסרטון ביוטיוב."""
+    if not YOUTUBE_API_KEY:
+        q = query.replace(' ', '+')
+        return f'https://www.youtube.com/results?search_query={q}'
+    try:
+        resp = requests.get(
+            'https://www.googleapis.com/youtube/v3/search',
+            params={'part': 'snippet', 'q': query, 'type': 'video',
+                    'maxResults': 1, 'key': YOUTUBE_API_KEY,
+                    'order': 'relevance'},
+            timeout=10,
+        )
+        items = resp.json().get('items', [])
+        if items:
+            vid = items[0]['id']['videoId']
+            return f'https://www.youtube.com/watch?v={vid}'
+    except Exception as e:
+        print(f'YouTube error: {e}')
+    q = query.replace(' ', '+')
+    return f'https://www.youtube.com/results?search_query={q}'
+
+
+def get_top_plays_url(date_obj):
+    """מחפש את סרטון Top Plays של הלילה ביוטיוב."""
+    date_str = date_obj.strftime('%B %d %Y')
+    query    = f'NBA Top Plays {date_str}'
+    print(f'מחפש Top Plays: {query}')
+    return search_youtube(query)
+
+
+def get_game_highlights_url(team1, team2):
+    """מחזיר קישור חיפוש להיילייטס של משחק."""
+    q = f'NBA+{team1}+vs+{team2}+highlights'
+    return f'https://www.youtube.com/results?search_query={q}'
 
 
 def get_nba_history(date_obj):
@@ -220,7 +253,7 @@ def get_nba_data():
     return games_data, all_players, il_players
 
 
-def build_message(games, all_players, il_players, history_fact, east, west):
+def build_message(games, all_players, il_players, history_fact, east, west, top_plays_url):
     try:
         date_obj  = datetime.now() - timedelta(days=1)
         days_he   = ['שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת', 'ראשון']
@@ -230,6 +263,10 @@ def build_message(games, all_players, il_players, history_fact, east, west):
         date_str  = (datetime.now() - timedelta(days=1)).strftime('%d.%m.%y')
 
     lines = []
+
+    # Top Plays — חייב להיות הקישור הראשון בהודעה כדי שיוצג כסרטון
+    lines.append(f'<a href="{top_plays_url}">🎬 Top Plays of the Night</a>')
+    lines.append('')
 
     # כותרת
     lines.append(f'🏀 <b>NBA | {date_str}</b>')
@@ -249,7 +286,7 @@ def build_message(games, all_players, il_players, history_fact, east, west):
             t0, t1 = g['teams'][0], g['teams'][1]
             s0, s1 = int(t0['score']), int(t1['score'])
             star   = '⭐ ' if g['is_fav'] else ''
-            yt     = get_youtube_link(t0['name'], t1['name'])
+            yt     = get_game_highlights_url(t0['name'], t1['name'])
 
             if s0 > s1:
                 score_line = f'<b>{t0["abbr"]} {s0}</b>-{s1} {t1["abbr"]}'
@@ -275,7 +312,7 @@ def build_message(games, all_players, il_players, history_fact, east, west):
     else:
         lines.append('🇮🇱 לא שיחק ישראלי הלילה')
 
-    # טבלה — רשימה
+    # טבלה
     if east and west:
         lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
         lines.append('📊 <b>טבלת הליגה</b>')
@@ -342,6 +379,12 @@ if __name__ == '__main__':
         print('שגיאה בטעינת הטבלה')
 
     today = datetime.now()
+    yesterday = today - timedelta(days=1)
+
+    print('מחפש Top Plays...')
+    top_plays_url = get_top_plays_url(yesterday)
+    print(f'Top Plays: {top_plays_url}')
+
     print('שולף עובדה היסטורית...')
     history_fact = get_nba_history(today)
     if history_fact:
@@ -349,5 +392,5 @@ if __name__ == '__main__':
     else:
         print('לא נמצאה עובדה היסטורית.')
 
-    msg = build_message(games, players, il, history_fact, east, west)
+    msg = build_message(games, players, il, history_fact, east, west, top_plays_url)
     send_telegram(msg)
