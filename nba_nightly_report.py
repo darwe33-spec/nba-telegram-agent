@@ -1,17 +1,20 @@
 import os
 import requests
+import json
+import base64
 from datetime import datetime, timedelta
 
 TOKEN           = os.getenv('TELEGRAM_TOKEN')
 CHAT_ID         = os.getenv('TELEGRAM_CHAT_ID')
 YOUTUBE_API_KEY = os.getenv('YOUTUBE_API_KEY', '')
+GITHUB_TOKEN    = os.getenv('NBA_GITHUB_TOKEN', '')
+GITHUB_REPO     = 'darwe33-spec/nba-telegram-agent'
 
 FAVORITE_TEAMS  = ['Lakers', 'LA Lakers', 'Los Angeles Lakers']
 ISRAELI_PLAYERS = ['Avdija', 'Saraf', 'Wolf']
 
 
 def search_youtube(query):
-    """מחזיר קישור ישיר לסרטון ביוטיוב."""
     if not YOUTUBE_API_KEY:
         q = query.replace(' ', '+')
         return f'https://www.youtube.com/results?search_query={q}'
@@ -34,7 +37,6 @@ def search_youtube(query):
 
 
 def get_top_plays_url(date_obj):
-    """מחפש את סרטון Top Plays של הלילה ביוטיוב."""
     date_str = date_obj.strftime('%B %d %Y')
     query    = f'NBA Top Plays {date_str}'
     print(f'מחפש Top Plays: {query}')
@@ -42,7 +44,6 @@ def get_top_plays_url(date_obj):
 
 
 def get_game_highlights_url(team1, team2):
-    """מחזיר קישור חיפוש להיילייטס של משחק."""
     q = f'NBA+{team1}+vs+{team2}+highlights'
     return f'https://www.youtube.com/results?search_query={q}'
 
@@ -101,7 +102,7 @@ def get_standings():
                 stats  = {s['name']: s.get('displayValue', '?') for s in entry.get('stats', [])}
                 wins   = stats.get('wins', '?')
                 losses = stats.get('losses', '?')
-                row    = f'{rank}. {team}  {wins}-{losses}'
+                row    = {'rank': rank, 'team': team, 'wins': wins, 'losses': losses}
                 if rank <= 6:
                     target['playoff'].append(row)
                 elif rank <= 10:
@@ -238,12 +239,14 @@ def get_nba_data():
                     any(fav.lower() in t['full'].lower() for fav in FAVORITE_TEAMS)
                     for t in teams
                 )
+                yt = get_game_highlights_url(teams[0]['name'], teams[1]['name'])
                 games_data.append({
-                    'game_id': game_id,
-                    'name':    game_name,
-                    'status':  status,
-                    'teams':   teams,
-                    'is_fav':  is_fav,
+                    'game_id':  game_id,
+                    'name':     game_name,
+                    'status':   status,
+                    'teams':    teams,
+                    'is_fav':   is_fav,
+                    'yt_url':   yt,
                 })
         except Exception as e:
             print(f'Skipping game: {e}')
@@ -253,7 +256,43 @@ def get_nba_data():
     return games_data, all_players, il_players
 
 
-def build_message(games, all_players, il_players, history_fact, east, west, top_plays_url):
+def save_to_github(data):
+    """שומר data.json לגיטהאב."""
+    if not GITHUB_TOKEN:
+        print('אין GitHub Token — לא שומר JSON')
+        return False
+    try:
+        api_url = f'https://api.github.com/repos/{GITHUB_REPO}/contents/data.json'
+        headers = {
+            'Authorization': f'token {GITHUB_TOKEN}',
+            'Accept': 'application/vnd.github.v3+json',
+        }
+        content = base64.b64encode(json.dumps(data, ensure_ascii=False).encode()).decode()
+
+        # בדיקה אם הקובץ קיים כדי לקבל את ה-SHA
+        get_resp = requests.get(api_url, headers=headers, timeout=10)
+        sha = get_resp.json().get('sha') if get_resp.ok else None
+
+        payload = {
+            'message': 'Update NBA data',
+            'content': content,
+        }
+        if sha:
+            payload['sha'] = sha
+
+        put_resp = requests.put(api_url, headers=headers, json=payload, timeout=15)
+        if put_resp.ok:
+            print('data.json נשמר בגיטהאב בהצלחה!')
+            return True
+        else:
+            print(f'שגיאה בשמירה: {put_resp.status_code}')
+            return False
+    except Exception as e:
+        print(f'GitHub save error: {e}')
+        return False
+
+
+def build_message(games, all_players, il_players, history_fact, top_plays_url):
     try:
         date_obj  = datetime.now() - timedelta(days=1)
         days_he   = ['שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת', 'ראשון']
@@ -264,21 +303,16 @@ def build_message(games, all_players, il_players, history_fact, east, west, top_
 
     lines = []
 
-    # Top Plays — חייב להיות הקישור הראשון בהודעה כדי שיוצג כסרטון
     lines.append(f'<a href="{top_plays_url}">🎬 Top Plays of the Night</a>')
     lines.append('')
-
-    # כותרת
     lines.append(f'🏀 <b>NBA | {date_str}</b>')
 
-    # MVP
     if all_players:
         mvp = max(all_players, key=lambda x: x['pts'])
         lines.append(f'🌟 {mvp["name"]} — {int(mvp["pts"])} PTS | {mvp["team"]}')
 
     lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
 
-    # משחקים
     if not games:
         lines.append('😴 לא היו משחקים הלילה.')
     else:
@@ -286,7 +320,7 @@ def build_message(games, all_players, il_players, history_fact, east, west, top_
             t0, t1 = g['teams'][0], g['teams'][1]
             s0, s1 = int(t0['score']), int(t1['score'])
             star   = '⭐ ' if g['is_fav'] else ''
-            yt     = get_game_highlights_url(t0['name'], t1['name'])
+            yt     = g.get('yt_url', '')
 
             if s0 > s1:
                 score_line = f'<b>{t0["abbr"]} {s0}</b>-{s1} {t1["abbr"]}'
@@ -305,36 +339,18 @@ def build_message(games, all_players, il_players, history_fact, east, west, top_
 
     lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
 
-    # ישראלים
     if il_players:
         for p in il_players:
             lines.append(f'🇮🇱 {p["name"]} {int(p["pts"])}P {int(p["reb"])}R {int(p["ast"])}A | {p["team"]}')
     else:
         lines.append('🇮🇱 לא שיחק ישראלי הלילה')
 
-    # טבלה
-    if east and west:
-        lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
-        lines.append('📊 <b>טבלת הליגה</b>')
-
-        for conf_name, conf in [('🏙 מזרח', east), ('🌅 מערב', west)]:
-            lines.append('')
-            lines.append(f'<b>{conf_name}</b>')
-            if conf['playoff']:
-                lines.append('🏆 פלייאוף')
-                for row in conf['playoff']:
-                    lines.append(f'  {row}')
-            if conf['playin']:
-                lines.append('⚡ פלאיין')
-                for row in conf['playin']:
-                    lines.append(f'  {row}')
-
-    # היסטוריה
-    if history_fact:
-        lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
-        lines.append(f'📜 {history_fact["year"]}: {history_fact["fact"]}')
-
     lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
+
+    if history_fact:
+        lines.append(f'📜 {history_fact["year"]}: {history_fact["fact"]}')
+        lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
+
     lines.append('🤖 <i>NBA Nightly Bot</i>')
 
     return '\n'.join(lines)
@@ -373,24 +389,29 @@ if __name__ == '__main__':
 
     print('שולף טבלה...')
     east, west = get_standings()
-    if east:
-        print('טבלה נטענה בהצלחה')
-    else:
-        print('שגיאה בטעינת הטבלה')
 
-    today = datetime.now()
+    today     = datetime.now()
     yesterday = today - timedelta(days=1)
 
     print('מחפש Top Plays...')
     top_plays_url = get_top_plays_url(yesterday)
-    print(f'Top Plays: {top_plays_url}')
 
     print('שולף עובדה היסטורית...')
     history_fact = get_nba_history(today)
-    if history_fact:
-        print(f'נמצא: {history_fact["year"]}')
-    else:
-        print('לא נמצאה עובדה היסטורית.')
 
-    msg = build_message(games, players, il, history_fact, east, west, top_plays_url)
+    # שמירת נתונים לגיטהאב לדשבורד
+    data = {
+        'date':         yesterday.strftime('%d/%m/%Y'),
+        'date_he':      f'{["שני","שלישי","רביעי","חמישי","שישי","שבת","ראשון"][yesterday.weekday()]} {yesterday.day}.{yesterday.month}.{str(yesterday.year)[2:]}',
+        'games':        games,
+        'mvp':          max(players, key=lambda x: x["pts"]) if players else None,
+        'il_players':   il,
+        'history':      history_fact,
+        'top_plays':    top_plays_url,
+        'east':         east,
+        'west':         west,
+    }
+    save_to_github(data)
+
+    msg = build_message(games, players, il, history_fact, top_plays_url)
     send_telegram(msg)
