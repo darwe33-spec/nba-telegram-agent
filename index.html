@@ -171,7 +171,8 @@ function buildGameCard(g, idx) {
         <div class="sc-pts">${parseInt(l.pts)}<small> PTS</small></div>
       </div>`).join('');
   };
-  const yt = g.yt_url || `https://www.youtube.com/results?search_query=NBA+${t0.name}+vs+${t1.name}+highlights`;
+  const ytUrl = g.yt_url || '';
+  const videoId = ytUrl.includes('watch?v=') ? ytUrl.split('watch?v=')[1].split('&')[0] : null;
   return `
   <div class="gc" style="animation-delay:${idx*0.07}s">
     <div class="gc-score">
@@ -214,10 +215,13 @@ function buildGameCard(g, idx) {
       </div>
     </div>
     <div class="gc-video">
-      <div class="gc-video-ph" onclick="window.open('${yt}','_blank')" style="cursor:pointer">
-        <div class="play-btn"></div>
-        <div class="video-label">${t0.name} vs ${t1.name} · Highlights</div>
-      </div>
+      ${videoId
+        ? `<iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;"></iframe>`
+        : `<div class="gc-video-ph" onclick="window.open('${ytUrl}','_blank')" style="cursor:pointer">
+            <div class="play-btn"></div>
+            <div class="video-label">${t0.name} vs ${t1.name} · Highlights</div>
+          </div>`
+      }
     </div>
   </div>`;
 }
@@ -245,16 +249,23 @@ async function loadData() {
     document.getElementById('hdr-date').textContent = d.date_he || d.date || '';
     document.getElementById('hdr-badge').textContent = `${(d.games||[]).length} משחקים`;
     let html = '';
+
     if (d.top_plays) {
+      const tpUrl = d.top_plays;
+      const tpId = tpUrl.includes('watch?v=') ? tpUrl.split('watch?v=')[1].split('&')[0] : null;
       html += `
       <div class="sec" style="margin-top:0;margin-bottom:12px"><div class="sec-title">Top Plays of the Night</div></div>
       <div style="border-radius:16px;overflow:hidden;margin-bottom:20px;box-shadow:var(--sh);position:relative;padding-top:56.25%;background:#0a0a0a;">
-        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer" onclick="window.open('${d.top_plays}','_blank')">
-          <div class="play-btn"></div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.55);letter-spacing:0.5px;">NBA Top Plays · אמש</div>
-        </div>
+        ${tpId
+          ? `<iframe src="https://www.youtube.com/embed/${tpId}" frameborder="0" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;"></iframe>`
+          : `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer" onclick="window.open('${tpUrl}','_blank')">
+              <div class="play-btn"></div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.55);">NBA Top Plays · אמש</div>
+            </div>`
+        }
       </div>`;
     }
+
     if (d.mvp) {
       html += `
       <div class="mvp">
@@ -266,6 +277,7 @@ async function loadData() {
         </div>
       </div>`;
     }
+
     const games = d.games || [];
     html += `<div class="sec"><div class="sec-title">משחקים הלילה</div><div class="sec-count">${games.length} משחקים</div></div>`;
     if (games.length === 0) {
@@ -273,6 +285,7 @@ async function loadData() {
     } else {
       games.forEach((g, i) => { html += buildGameCard(g, i); });
     }
+
     const il = d.il_players || [];
     html += `<div class="sec"><div class="sec-title">ישראלים הלילה</div></div>`;
     if (il.length === 0) {
@@ -291,8 +304,10 @@ async function loadData() {
         </div>`;
       });
     }
+
     html += `<div class="sec"><div class="sec-title">טבלת הליגה</div></div>`;
     html += buildStandings(d.east, d.west);
+
     if (d.history) {
       html += `<div class="sec"><div class="sec-title">היום לפני בהיסטוריה</div></div>
       <div class="hist">
@@ -301,6 +316,7 @@ async function loadData() {
         <div class="hist-fact">${d.history.fact}</div>
       </div>`;
     }
+
     html += `<div class="footer">NBA Nightly · מתעדכן כל בוקר אוטומטית</div>`;
     content.innerHTML = html;
   } catch(e) {
