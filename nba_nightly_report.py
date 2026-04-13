@@ -43,11 +43,6 @@ def get_top_plays_url(date_obj):
     return search_youtube(query)
 
 
-def get_game_highlights_url(team1, team2):
-    q = f'NBA+{team1}+vs+{team2}+highlights'
-    return f'https://www.youtube.com/results?search_query={q}'
-
-
 def get_nba_history(date_obj):
     try:
         day  = date_obj.day
@@ -239,14 +234,14 @@ def get_nba_data():
                     any(fav.lower() in t['full'].lower() for fav in FAVORITE_TEAMS)
                     for t in teams
                 )
-                yt = get_game_highlights_url(teams[0]['name'], teams[1]['name'])
+                yt_direct = search_youtube(f'NBA {teams[0]["name"]} vs {teams[1]["name"]} highlights')
                 games_data.append({
                     'game_id':  game_id,
                     'name':     game_name,
                     'status':   status,
                     'teams':    teams,
                     'is_fav':   is_fav,
-                    'yt_url':   yt,
+                    'yt_url':   yt_direct,
                 })
         except Exception as e:
             print(f'Skipping game: {e}')
@@ -257,7 +252,6 @@ def get_nba_data():
 
 
 def save_to_github(data):
-    """שומר data.json לגיטהאב."""
     if not GITHUB_TOKEN:
         print('אין GitHub Token — לא שומר JSON')
         return False
@@ -268,18 +262,14 @@ def save_to_github(data):
             'Accept': 'application/vnd.github.v3+json',
         }
         content = base64.b64encode(json.dumps(data, ensure_ascii=False).encode()).decode()
-
-        # בדיקה אם הקובץ קיים כדי לקבל את ה-SHA
         get_resp = requests.get(api_url, headers=headers, timeout=10)
         sha = get_resp.json().get('sha') if get_resp.ok else None
-
         payload = {
             'message': 'Update NBA data',
             'content': content,
         }
         if sha:
             payload['sha'] = sha
-
         put_resp = requests.put(api_url, headers=headers, json=payload, timeout=15)
         if put_resp.ok:
             print('data.json נשמר בגיטהאב בהצלחה!')
@@ -302,7 +292,6 @@ def build_message(games, all_players, il_players, history_fact, top_plays_url):
         date_str  = (datetime.now() - timedelta(days=1)).strftime('%d.%m.%y')
 
     lines = []
-
     lines.append(f'<a href="{top_plays_url}">🎬 Top Plays of the Night</a>')
     lines.append('')
     lines.append(f'🏀 <b>NBA | {date_str}</b>')
@@ -321,19 +310,16 @@ def build_message(games, all_players, il_players, history_fact, top_plays_url):
             s0, s1 = int(t0['score']), int(t1['score'])
             star   = '⭐ ' if g['is_fav'] else ''
             yt     = g.get('yt_url', '')
-
             if s0 > s1:
                 score_line = f'<b>{t0["abbr"]} {s0}</b>-{s1} {t1["abbr"]}'
             else:
                 score_line = f'{t0["abbr"]} {s0}-<b>{s1} {t1["abbr"]}</b>'
-
             scorers = []
             for team in [t0, t1]:
                 if team['leaders']:
                     top = team['leaders'][0]
                     scorers.append(f'{top["short"]} {top["val"]}')
             scorers_line = ' • '.join(scorers)
-
             lines.append(f'{star}{score_line} | <a href="{yt}">▶️</a>')
             lines.append(f'   {scorers_line}')
 
@@ -352,7 +338,6 @@ def build_message(games, all_players, il_players, history_fact, top_plays_url):
         lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
 
     lines.append('🤖 <i>NBA Nightly Bot</i>')
-
     return '\n'.join(lines)
 
 
@@ -399,17 +384,16 @@ if __name__ == '__main__':
     print('שולף עובדה היסטורית...')
     history_fact = get_nba_history(today)
 
-    # שמירת נתונים לגיטהאב לדשבורד
     data = {
-        'date':         yesterday.strftime('%d/%m/%Y'),
-        'date_he':      f'{["שני","שלישי","רביעי","חמישי","שישי","שבת","ראשון"][yesterday.weekday()]} {yesterday.day}.{yesterday.month}.{str(yesterday.year)[2:]}',
-        'games':        games,
-        'mvp':          max(players, key=lambda x: x["pts"]) if players else None,
-        'il_players':   il,
-        'history':      history_fact,
-        'top_plays':    top_plays_url,
-        'east':         east,
-        'west':         west,
+        'date':      yesterday.strftime('%d/%m/%Y'),
+        'date_he':   f'{["שני","שלישי","רביעי","חמישי","שישי","שבת","ראשון"][yesterday.weekday()]} {yesterday.day}.{yesterday.month}.{str(yesterday.year)[2:]}',
+        'games':     games,
+        'mvp':       max(players, key=lambda x: x["pts"]) if players else None,
+        'il_players':il,
+        'history':   history_fact,
+        'top_plays': top_plays_url,
+        'east':      east,
+        'west':      west,
     }
     save_to_github(data)
 
