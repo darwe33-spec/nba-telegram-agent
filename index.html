@@ -9,143 +9,40 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --cream:#FAFAF8;
-  --white:#FFFFFF;
-  --ink:#0F0F0F;
-  --ink2:#2A2A2A;
-  --ink3:#6B6B6B;
-  --ink4:#AEAEAE;
-  --ink5:#E8E8E4;
-  --gold:#B8922A;
-  --gold-lt:#F5EDD8;
-  --red:#C8322A;
-  --red-lt:#FAEAE9;
-  --il:#1A3A8F;
-  --il-lt:#EBF0FA;
+  --cream:#FAFAF8;--white:#FFFFFF;--ink:#0F0F0F;--ink2:#2A2A2A;
+  --ink3:#6B6B6B;--ink4:#AEAEAE;--ink5:#E8E8E4;
+  --gold:#B8922A;--gold-lt:#F5EDD8;--red:#C8322A;
+  --il:#1A3A8F;--il-lt:#EBF0FA;
   --serif:'Cormorant Garamond',Georgia,serif;
   --sans:'DM Sans',system-ui,sans-serif;
   --sh:0 1px 3px rgba(0,0,0,0.06),0 4px 20px rgba(0,0,0,0.05);
 }
 html{font-size:15px;-webkit-text-size-adjust:100%}
-body{
-  font-family:var(--sans);
-  background:var(--cream);
-  color:var(--ink);
-  min-height:100vh;
-  -webkit-font-smoothing:antialiased;
-  overflow-x:hidden;
-}
-
-/* ── HERO BACKGROUND ── */
-.hero-bg{
-  position:fixed;top:0;left:0;right:0;
-  height:420px;
-  pointer-events:none;z-index:0;
-  overflow:hidden;
-}
-.hero-bg::before{
-  content:'';
-  position:absolute;inset:0;
-  background:linear-gradient(180deg,rgba(250,250,248,0) 0%,rgba(250,250,248,1) 100%);
-  z-index:2;
-}
-.sil-wrap{
-  position:absolute;bottom:0;
-  display:flex;align-items:flex-end;
-  opacity:0.13;
-}
-.sil-lebron{
-  left:-20px;
-  width:280px;height:380px;
-}
-.sil-jokic{
-  right:-20px;
-  width:260px;height:360px;
-}
-
-/* LeBron silhouette */
-.sil-lebron svg, .sil-jokic svg{
-  width:100%;height:100%;
-}
-
-/* ── HEADER ── */
-.hdr{
-  background:rgba(255,255,255,0.85);
-  backdrop-filter:blur(20px);
-  -webkit-backdrop-filter:blur(20px);
-  border-bottom:1px solid var(--ink5);
-  padding:0 20px;
-  height:52px;
-  display:flex;align-items:center;justify-content:space-between;
-  position:sticky;top:0;z-index:50;
-}
-.hdr-logo{
-  font-family:var(--serif);
-  font-size:20px;font-weight:600;
-  letter-spacing:0.5px;color:var(--ink);
-}
+body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+.hero-bg{position:fixed;top:0;left:0;right:0;height:420px;pointer-events:none;z-index:0;overflow:hidden;}
+.hero-bg::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(250,250,248,0) 0%,rgba(250,250,248,1) 100%);z-index:2;}
+.sil-wrap{position:absolute;bottom:0;display:flex;align-items:flex-end;opacity:0.13;}
+.hdr{background:rgba(255,255,255,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--ink5);padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.hdr-logo{font-family:var(--serif);font-size:20px;font-weight:600;letter-spacing:0.5px;color:var(--ink);}
 .hdr-logo em{color:var(--gold);font-style:italic}
 .hdr-date{font-size:11px;font-weight:400;color:var(--ink3);letter-spacing:0.5px;}
-.hdr-badge{
-  font-size:11px;font-weight:500;color:var(--ink3);
-  background:var(--ink5);padding:4px 10px;border-radius:99px;
-}
-
-/* ── PAGE ── */
-.page{
-  max-width:480px;margin:0 auto;
-  padding:20px 16px 60px;
-  position:relative;z-index:1;
-}
-
-/* ── MVP ── */
-.mvp{
-  background:var(--white);
-  border:1px solid var(--ink5);
-  border-radius:16px;
-  padding:20px;
-  margin-bottom:20px;
-  box-shadow:var(--sh);
-  position:relative;overflow:hidden;
-}
-.mvp::before{
-  content:'';
-  position:absolute;left:0;top:0;bottom:0;width:3px;
-  background:linear-gradient(180deg,var(--gold),var(--gold-lt));
-}
-.mvp-eye{
-  font-size:10px;font-weight:500;
-  letter-spacing:2px;text-transform:uppercase;
-  color:var(--gold);margin-bottom:6px;
-}
-.mvp-name{
-  font-family:var(--serif);
-  font-size:28px;font-weight:600;
-  color:var(--ink);letter-spacing:-0.3px;line-height:1.1;margin-bottom:4px;
-}
+.hdr-badge{font-size:11px;font-weight:500;color:var(--ink3);background:var(--ink5);padding:4px 10px;border-radius:99px;}
+.page{max-width:480px;margin:0 auto;padding:20px 16px 60px;position:relative;z-index:1;}
+.loading{text-align:center;padding:80px 20px;font-family:var(--serif);font-size:18px;color:var(--ink3);font-style:italic;}
+.mvp{background:var(--white);border:1px solid var(--ink5);border-radius:16px;padding:20px;margin-bottom:20px;box-shadow:var(--sh);position:relative;overflow:hidden;}
+.mvp::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--gold),var(--gold-lt));}
+.mvp-eye{font-size:10px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:6px;}
+.mvp-name{font-family:var(--serif);font-size:28px;font-weight:600;color:var(--ink);letter-spacing:-0.3px;line-height:1.1;margin-bottom:4px;}
 .mvp-team{font-size:11px;color:var(--ink3);letter-spacing:0.5px;margin-bottom:14px;}
 .mvp-stats{display:flex;gap:20px}
 .mvp-s{text-align:center}
 .mvp-sv{font-family:var(--serif);font-size:26px;font-weight:300;color:var(--ink);line-height:1;}
 .mvp-sl{font-size:9px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink4);margin-top:3px;}
-
-/* ── SECTION ── */
 .sec{display:flex;align-items:baseline;gap:8px;margin:24px 0 14px;}
 .sec-title{font-family:var(--serif);font-size:20px;font-weight:400;color:var(--ink);letter-spacing:-0.2px;}
 .sec-count{font-size:11px;color:var(--ink4);}
-
-/* ── GAME CARD ── */
-.gc{
-  background:var(--white);
-  border:1px solid var(--ink5);
-  border-radius:16px;
-  margin-bottom:14px;
-  box-shadow:var(--sh);
-  overflow:hidden;
-  animation:fadeUp .4s ease both;
-}
+.gc{background:var(--white);border:1px solid var(--ink5);border-radius:16px;margin-bottom:14px;box-shadow:var(--sh);overflow:hidden;animation:fadeUp .4s ease both;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-
 .gc-score{padding:16px 18px 14px;border-bottom:1px solid var(--ink5);}
 .gc-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;}
 .gc-team{display:flex;flex-direction:column;gap:2px;}
@@ -156,14 +53,7 @@ body{
 .gc-pts{font-family:var(--serif);font-size:28px;font-weight:300;color:var(--ink);letter-spacing:-1px;line-height:1;}
 .gc-pts .sep{color:var(--ink4);margin:0 3px;}
 .gc-status{font-size:9px;color:var(--ink4);letter-spacing:1px;text-transform:uppercase;margin-top:3px;}
-.gc-fav{
-  display:inline-block;font-size:9px;font-weight:500;
-  letter-spacing:1px;text-transform:uppercase;
-  color:var(--gold);background:var(--gold-lt);
-  padding:2px 7px;border-radius:99px;margin-top:6px;
-}
-
-/* scorers */
+.gc-fav{display:inline-block;font-size:9px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--gold);background:var(--gold-lt);padding:2px 7px;border-radius:99px;margin-top:6px;}
 .gc-body{padding:12px 18px;}
 .tb{margin-bottom:10px;}
 .tb:last-child{margin-bottom:0;}
@@ -172,144 +62,78 @@ body{
 .sc:last-child{border-bottom:none;}
 .sc-n{font-size:11px;font-weight:500;color:var(--gold);width:14px;text-align:center;}
 .sc-name{flex:1;font-size:13px;font-weight:400;color:var(--ink);}
-.sc-il{font-size:9px;font-weight:500;color:var(--il);background:var(--il-lt);padding:1px 5px;border-radius:99px;}
-.sc-line{font-size:11px;color:var(--ink3);}
 .sc-pts{font-family:var(--serif);font-size:18px;font-weight:300;color:var(--ink);line-height:1;}
 .sc-pts small{font-family:var(--sans);font-size:9px;color:var(--ink4);font-weight:400;}
-
-/* box score accordion */
 .gc-accordion{border-top:1px solid var(--ink5);}
-.accordion-btn{
-  width:100%;padding:10px 18px;
-  display:flex;align-items:center;justify-content:space-between;
-  background:none;border:none;cursor:pointer;
-  font-family:var(--sans);font-size:11px;font-weight:500;
-  color:var(--ink3);letter-spacing:0.5px;
-  transition:background .15s;
-}
+.accordion-btn{width:100%;padding:10px 18px;display:flex;align-items:center;justify-content:space-between;background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:11px;font-weight:500;color:var(--ink3);letter-spacing:0.5px;transition:background .15s;}
 .accordion-btn:hover{background:var(--cream);}
-.accordion-arrow{
-  width:16px;height:16px;
-  border-right:1.5px solid var(--ink4);
-  border-bottom:1.5px solid var(--ink4);
-  transform:rotate(45deg);
-  transition:transform .25s;
-  margin-top:-4px;
-}
+.accordion-arrow{width:16px;height:16px;border-right:1.5px solid var(--ink4);border-bottom:1.5px solid var(--ink4);transform:rotate(45deg);transition:transform .25s;margin-top:-4px;}
 .accordion-btn.open .accordion-arrow{transform:rotate(-135deg);margin-top:4px;}
-.accordion-body{
-  display:none;padding:0 18px 14px;
-}
+.accordion-body{display:none;padding:0 18px 14px;}
 .accordion-body.open{display:block;}
 .bs-table{width:100%;border-collapse:collapse;font-size:11px;}
-.bs-table th{
-  font-size:9px;font-weight:500;letter-spacing:1px;text-transform:uppercase;
-  color:var(--ink4);padding:6px 4px;border-bottom:1px solid var(--ink5);
-  text-align:right;
-}
+.bs-table th{font-size:9px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--ink4);padding:6px 4px;border-bottom:1px solid var(--ink5);text-align:right;}
 .bs-table th:first-child{text-align:left;}
-.bs-table td{
-  padding:6px 4px;border-bottom:1px solid var(--ink5);
-  color:var(--ink2);text-align:right;
-}
+.bs-table td{padding:6px 4px;border-bottom:1px solid var(--ink5);color:var(--ink2);text-align:right;}
 .bs-table td:first-child{text-align:left;font-weight:500;color:var(--ink);}
 .bs-table tr:last-child td{border-bottom:none;}
-.bs-team-lbl{
-  font-size:9px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;
-  color:var(--ink4);padding:10px 0 6px;
-}
-
-/* video */
+.bs-team-lbl{font-size:9px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink4);padding:10px 0 6px;}
 .gc-video{border-top:1px solid var(--ink5);background:var(--ink);position:relative;padding-top:56.25%;overflow:hidden;}
 .gc-video-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#0a0a0a;}
-.play-btn{
-  width:48px;height:48px;background:var(--red);border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;transition:transform .15s;
-}
+.play-btn{width:48px;height:48px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s;}
 .play-btn:hover{transform:scale(1.08);}
 .play-btn::after{content:'';width:0;height:0;border-top:10px solid transparent;border-bottom:10px solid transparent;border-left:18px solid #fff;margin-left:4px;}
 .video-label{font-size:11px;color:rgba(255,255,255,0.5);letter-spacing:0.5px;}
-
-/* ── ISRAELI ── */
-.il-card{
-  background:var(--white);border:1px solid var(--ink5);
-  border-top:2px solid var(--il);border-radius:16px;
-  padding:16px 18px;margin-bottom:14px;box-shadow:var(--sh);
-}
+.il-card{background:var(--white);border:1px solid var(--ink5);border-top:2px solid var(--il);border-radius:16px;padding:16px 18px;margin-bottom:14px;box-shadow:var(--sh);}
 .il-name{font-size:15px;font-weight:500;color:var(--ink);margin-bottom:3px;display:flex;align-items:center;gap:6px;}
 .il-game{font-size:11px;color:var(--ink3);margin-bottom:12px;}
 .il-stats{display:flex;gap:18px;}
 .il-sv{font-family:var(--serif);font-size:22px;font-weight:300;color:var(--il);line-height:1;}
 .il-sl{font-size:9px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink4);margin-top:3px;}
-
-/* ── HISTORY ── */
-.hist{
-  background:var(--white);border:1px solid var(--ink5);
-  border-radius:16px;padding:18px 20px;box-shadow:var(--sh);
-  display:flex;gap:18px;align-items:flex-start;
-}
+.standings-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
+.stand-card{background:var(--white);border:1px solid var(--ink5);border-radius:14px;padding:14px;box-shadow:var(--sh);}
+.stand-conf{font-size:10px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink3);margin-bottom:8px;}
+.stand-zone{font-size:9px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin:8px 0 4px;}
+.stand-row{font-size:11px;color:var(--ink2);padding:3px 0;display:flex;justify-content:space-between;}
+.stand-row span{color:var(--ink4);}
+.hist{background:var(--white);border:1px solid var(--ink5);border-radius:16px;padding:18px 20px;box-shadow:var(--sh);display:flex;gap:18px;align-items:flex-start;}
 .hist-yr{font-family:var(--serif);font-size:26px;font-weight:300;color:var(--gold);letter-spacing:-0.5px;flex-shrink:0;}
 .hist-line{width:1px;background:var(--ink5);align-self:stretch;flex-shrink:0;}
 .hist-fact{font-size:13px;color:var(--ink2);line-height:1.65;padding-top:4px;}
-
-/* ── FOOTER ── */
 .footer{text-align:center;padding:24px 0 0;font-family:var(--serif);font-size:13px;font-style:italic;color:var(--ink4);}
 </style>
 </head>
 <body>
 
-<!-- Silhouette backgrounds -->
 <div class="hero-bg">
-  <!-- LeBron silhouette — driving to basket -->
   <div class="sil-wrap" style="left:-30px">
-    <svg class="sil-lebron" viewBox="0 0 200 320" fill="#1A1A1A" xmlns="http://www.w3.org/2000/svg">
-      <!-- Head -->
+    <svg style="width:280px;height:380px" viewBox="0 0 200 320" fill="#1A1A1A" xmlns="http://www.w3.org/2000/svg">
       <ellipse cx="110" cy="30" rx="22" ry="26"/>
-      <!-- Neck -->
       <rect x="103" y="52" width="14" height="16" rx="6"/>
-      <!-- Body — leaning forward -->
       <path d="M70 68 Q100 60 140 70 L155 140 Q130 155 95 150 Q70 145 60 130 Z"/>
-      <!-- Left arm — extended forward with ball -->
       <path d="M140 80 Q170 90 185 110 Q195 125 188 135 Q175 125 165 115 Q155 105 140 100 Z"/>
-      <!-- Ball -->
       <circle cx="192" cy="140" r="18"/>
       <line x1="174" y1="140" x2="210" y2="140" stroke="#FAFAF8" stroke-width="1.5"/>
       <line x1="192" y1="122" x2="192" y2="158" stroke="#FAFAF8" stroke-width="1.5"/>
-      <!-- Right arm -->
       <path d="M70 80 Q45 95 35 120 Q30 135 40 140 Q50 130 60 115 Q70 100 80 90 Z"/>
-      <!-- Left leg -->
       <path d="M110 150 Q125 190 130 230 Q132 260 120 280 Q108 275 105 255 Q100 225 95 190 Q90 165 95 150 Z"/>
-      <!-- Right leg — bent -->
       <path d="M85 148 Q75 185 65 215 Q55 240 45 255 Q35 248 38 232 Q48 210 58 182 Q68 155 78 148 Z"/>
-      <!-- Shoes -->
       <ellipse cx="115" cy="285" rx="20" ry="8"/>
       <ellipse cx="38" cy="258" rx="18" ry="7"/>
     </svg>
   </div>
-
-  <!-- Jokic silhouette — post move -->
   <div class="sil-wrap" style="right:-30px">
-    <svg class="sil-jokic" viewBox="0 0 200 300" fill="#1A1A1A" xmlns="http://www.w3.org/2000/svg">
-      <!-- Head -->
+    <svg style="width:260px;height:360px" viewBox="0 0 200 300" fill="#1A1A1A" xmlns="http://www.w3.org/2000/svg">
       <ellipse cx="95" cy="28" rx="24" ry="27"/>
-      <!-- Neck -->
       <rect x="88" y="52" width="14" height="14" rx="5"/>
-      <!-- Body — wide, upright -->
       <path d="M55 66 Q95 58 135 66 L148 148 Q115 162 75 158 Q50 153 45 138 Z"/>
-      <!-- Left arm — passing -->
       <path d="M55 80 Q30 95 18 120 Q12 138 22 144 Q34 135 44 112 Q54 92 65 85 Z"/>
-      <!-- Right arm — up high -->
       <path d="M135 75 Q158 60 172 45 Q182 35 178 25 Q168 30 158 42 Q148 55 138 68 Z"/>
-      <!-- Ball in right hand -->
       <circle cx="178" cy="18" r="16"/>
       <line x1="162" y1="18" x2="194" y2="18" stroke="#FAFAF8" stroke-width="1.5"/>
       <line x1="178" y1="2" x2="178" y2="34" stroke="#FAFAF8" stroke-width="1.5"/>
-      <!-- Left leg -->
       <path d="M90 158 Q100 195 105 232 Q108 258 98 272 Q86 268 83 248 Q78 218 74 188 Q70 165 76 158 Z"/>
-      <!-- Right leg -->
       <path d="M110 156 Q118 192 122 228 Q125 255 116 270 Q104 266 102 246 Q97 216 94 186 Q91 162 98 156 Z"/>
-      <!-- Shoes -->
       <ellipse cx="90" cy="276" rx="20" ry="8"/>
       <ellipse cx="113" cy="274" rx="20" ry="8"/>
     </svg>
@@ -318,63 +142,58 @@ body{
 
 <header class="hdr">
   <div class="hdr-logo">NBA<em>.</em>Nightly</div>
-  <div class="hdr-date">יום חמישי, 3 באפריל 2026</div>
-  <div class="hdr-badge">6 משחקים</div>
+  <div class="hdr-date" id="hdr-date">טוען...</div>
+  <div class="hdr-badge" id="hdr-badge">—</div>
 </header>
 
-<div class="page">
+<div class="page" id="main-content">
+  <div class="loading">טוען נתונים...</div>
+</div>
 
-  <!-- Top Plays -->
-  <div class="sec" style="margin-top:0;padding-top:0;margin-bottom:12px">
-    <div class="sec-title">Top Plays of the Night</div>
-  </div>
-  <div style="border-radius:16px;overflow:hidden;margin-bottom:20px;box-shadow:var(--sh);position:relative;padding-top:56.25%;background:#0a0a0a;">
-    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
-      <div class="play-btn" style="width:56px;height:56px;"></div>
-      <div style="font-size:12px;color:rgba(255,255,255,0.55);letter-spacing:0.5px;">NBA Top Plays · אמש</div>
-    </div>
-  </div>
+<script>
+function toggleBox(btn) {
+  btn.classList.toggle('open');
+  btn.nextElementSibling.classList.toggle('open');
+}
 
-  <!-- MVP -->
-  <div class="mvp">
-    <div class="mvp-eye">ביצוע הלילה</div>
-    <div class="mvp-name">Shai Gilgeous-Alexander</div>
-    <div class="mvp-team">Oklahoma City Thunder</div>
-    <div class="mvp-stats">
-      <div class="mvp-s"><div class="mvp-sv">42</div><div class="mvp-sl">PTS</div></div>
-      <div class="mvp-s"><div class="mvp-sv">7</div><div class="mvp-sl">REB</div></div>
-      <div class="mvp-s"><div class="mvp-sv">9</div><div class="mvp-sl">AST</div></div>
-      <div class="mvp-s"><div class="mvp-sv">3</div><div class="mvp-sl">STL</div></div>
-    </div>
-  </div>
-
-  <!-- Games -->
-  <div class="sec">
-    <div class="sec-title">משחקים הלילה</div>
-    <div class="sec-count">6 משחקים</div>
-  </div>
-
-  <!-- Game 1 — Lakers -->
-  <div class="gc" style="animation-delay:0s">
+function buildGameCard(g, idx) {
+  const t0 = g.teams[0], t1 = g.teams[1];
+  const s0 = parseInt(t0.score), s1 = parseInt(t1.score);
+  const star = g.is_fav ? '<div class="gc-fav">⭐ משחק נבחר</div>' : '';
+  const sc0 = s0 > s1 ? `<strong>${s0}</strong>` : `${s0}`;
+  const sc1 = s1 > s0 ? `<strong>${s1}</strong>` : `${s1}`;
+  const buildScorers = (team) => {
+    if (!team.leaders || !team.leaders.length) return '';
+    return team.leaders.slice(0,2).map((l,i) => `
+      <div class="sc">
+        <div class="sc-n">${i+1}</div>
+        <div class="sc-name">${l.full}</div>
+        <div class="sc-pts">${parseInt(l.pts)}<small> PTS</small></div>
+      </div>`).join('');
+  };
+  const yt = g.yt_url || `https://www.youtube.com/results?search_query=NBA+${t0.name}+vs+${t1.name}+highlights`;
+  return `
+  <div class="gc" style="animation-delay:${idx*0.07}s">
     <div class="gc-score">
       <div class="gc-teams">
-        <div class="gc-team"><div class="gc-abbr">LAL</div><div class="gc-full">Los Angeles Lakers</div></div>
-        <div class="gc-mid"><div class="gc-pts">109<span class="sep">–</span><strong>127</strong></div><div class="gc-status">Final</div></div>
-        <div class="gc-team r"><div class="gc-abbr">OKC</div><div class="gc-full">Oklahoma City Thunder</div></div>
+        <div class="gc-team">
+          <div class="gc-abbr">${t0.abbr}</div>
+          <div class="gc-full">${t0.full}</div>
+        </div>
+        <div class="gc-mid">
+          <div class="gc-pts">${sc0}<span class="sep">–</span>${sc1}</div>
+          <div class="gc-status">${g.status}</div>
+        </div>
+        <div class="gc-team r">
+          <div class="gc-abbr">${t1.abbr}</div>
+          <div class="gc-full">${t1.full}</div>
+        </div>
       </div>
-      <div class="gc-fav">⭐ משחק נבחר</div>
+      ${star}
     </div>
     <div class="gc-body">
-      <div class="tb">
-        <div class="tb-lbl">LAL</div>
-        <div class="sc"><div class="sc-n">1</div><div class="sc-name">LeBron James</div><div class="sc-line">8R · 9A</div><div class="sc-pts">28<small> PTS</small></div></div>
-        <div class="sc"><div class="sc-n">2</div><div class="sc-name">A. Reaves</div><div class="sc-line">4R · 5A</div><div class="sc-pts">19<small> PTS</small></div></div>
-      </div>
-      <div class="tb">
-        <div class="tb-lbl">OKC</div>
-        <div class="sc"><div class="sc-n">1</div><div class="sc-name">Shai Gilgeous-Alexander</div><div class="sc-line">7R · 9A</div><div class="sc-pts">42<small> PTS</small></div></div>
-        <div class="sc"><div class="sc-n">2</div><div class="sc-name">Jalen Williams</div><div class="sc-line">5R · 4A</div><div class="sc-pts">21<small> PTS</small></div></div>
-      </div>
+      <div class="tb"><div class="tb-lbl">${t0.abbr}</div>${buildScorers(t0)}</div>
+      <div class="tb"><div class="tb-lbl">${t1.abbr}</div>${buildScorers(t1)}</div>
     </div>
     <div class="gc-accordion">
       <button class="accordion-btn" onclick="toggleBox(this)">
@@ -382,243 +201,114 @@ body{
         <div class="accordion-arrow"></div>
       </button>
       <div class="accordion-body">
-        <div class="bs-team-lbl">LAL</div>
+        <div class="bs-team-lbl">${t0.abbr}</div>
         <table class="bs-table">
-          <thead><tr><th>שחקן</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th></tr></thead>
-          <tbody>
-            <tr><td>LeBron James</td><td>36</td><td>28</td><td>8</td><td>9</td><td>1</td><td>1</td></tr>
-            <tr><td>A. Reaves</td><td>32</td><td>19</td><td>4</td><td>5</td><td>2</td><td>0</td></tr>
-            <tr><td>A. Davis</td><td>34</td><td>16</td><td>12</td><td>2</td><td>1</td><td>3</td></tr>
-            <tr><td>D. Russell</td><td>28</td><td>14</td><td>3</td><td>6</td><td>1</td><td>0</td></tr>
-            <tr><td>R. Hachimura</td><td>24</td><td>12</td><td>5</td><td>1</td><td>0</td><td>1</td></tr>
-          </tbody>
+          <thead><tr><th>שחקן</th><th>PTS</th><th>REB</th><th>AST</th></tr></thead>
+          <tbody>${(t0.leaders||[]).map(l=>`<tr><td>${l.full}</td><td>${parseInt(l.pts)}</td><td>—</td><td>—</td></tr>`).join('')}</tbody>
         </table>
-        <div class="bs-team-lbl" style="margin-top:8px">OKC</div>
+        <div class="bs-team-lbl" style="margin-top:8px">${t1.abbr}</div>
         <table class="bs-table">
-          <thead><tr><th>שחקן</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th></tr></thead>
-          <tbody>
-            <tr><td>SGA</td><td>38</td><td>42</td><td>7</td><td>9</td><td>3</td><td>1</td></tr>
-            <tr><td>J. Williams</td><td>34</td><td>21</td><td>5</td><td>4</td><td>1</td><td>0</td></tr>
-            <tr><td>C. Holmgren</td><td>30</td><td>14</td><td>9</td><td>2</td><td>0</td><td>4</td></tr>
-            <tr><td>I. Joe</td><td>26</td><td>18</td><td>3</td><td>2</td><td>1</td><td>0</td></tr>
-            <tr><td>A. Dort</td><td>28</td><td>10</td><td>4</td><td>3</td><td>2</td><td>0</td></tr>
-          </tbody>
+          <thead><tr><th>שחקן</th><th>PTS</th><th>REB</th><th>AST</th></tr></thead>
+          <tbody>${(t1.leaders||[]).map(l=>`<tr><td>${l.full}</td><td>${parseInt(l.pts)}</td><td>—</td><td>—</td></tr>`).join('')}</tbody>
         </table>
       </div>
     </div>
     <div class="gc-video">
-      <div class="gc-video-ph">
+      <div class="gc-video-ph" onclick="window.open('${yt}','_blank')" style="cursor:pointer">
         <div class="play-btn"></div>
-        <div class="video-label">Lakers vs Thunder · Highlights</div>
+        <div class="video-label">${t0.name} vs ${t1.name} · Highlights</div>
       </div>
     </div>
-  </div>
-
-  <!-- Game 2 — Avdija -->
-  <div class="gc" style="animation-delay:.07s">
-    <div class="gc-score">
-      <div class="gc-teams">
-        <div class="gc-team"><div class="gc-abbr">POR</div><div class="gc-full">Portland Trail Blazers</div></div>
-        <div class="gc-mid"><div class="gc-pts"><strong>118</strong><span class="sep">–</span>106</div><div class="gc-status">Final</div></div>
-        <div class="gc-team r"><div class="gc-abbr">NO</div><div class="gc-full">New Orleans Pelicans</div></div>
-      </div>
-    </div>
-    <div class="gc-body">
-      <div class="tb">
-        <div class="tb-lbl">POR</div>
-        <div class="sc"><div class="sc-n">1</div><div class="sc-name">Deni Avdija <span class="sc-il">🇮🇱 IL</span></div><div class="sc-line">9R · 5A</div><div class="sc-pts">26<small> PTS</small></div></div>
-        <div class="sc"><div class="sc-n">2</div><div class="sc-name">Scoot Henderson</div><div class="sc-line">4R · 7A</div><div class="sc-pts">19<small> PTS</small></div></div>
-      </div>
-    </div>
-    <div class="gc-accordion">
-      <button class="accordion-btn" onclick="toggleBox(this)"><span>Box Score</span><div class="accordion-arrow"></div></button>
-      <div class="accordion-body">
-        <div class="bs-team-lbl">POR</div>
-        <table class="bs-table">
-          <thead><tr><th>שחקן</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th></tr></thead>
-          <tbody>
-            <tr><td>D. Avdija 🇮🇱</td><td>34</td><td>26</td><td>9</td><td>5</td><td>2</td><td>1</td></tr>
-            <tr><td>S. Henderson</td><td>32</td><td>19</td><td>4</td><td>7</td><td>1</td><td>0</td></tr>
-            <tr><td>J. Holiday</td><td>30</td><td>15</td><td>5</td><td>3</td><td>2</td><td>0</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="gc-video">
-      <div class="gc-video-ph"><div class="play-btn"></div><div class="video-label">Trail Blazers vs Pelicans · Highlights</div></div>
-    </div>
-  </div>
-
-  <!-- Game 3 -->
-  <div class="gc" style="animation-delay:.14s">
-    <div class="gc-score">
-      <div class="gc-teams">
-        <div class="gc-team"><div class="gc-abbr">BOS</div><div class="gc-full">Boston Celtics</div></div>
-        <div class="gc-mid"><div class="gc-pts"><strong>115</strong><span class="sep">–</span>108</div><div class="gc-status">Final</div></div>
-        <div class="gc-team r"><div class="gc-abbr">MIA</div><div class="gc-full">Miami Heat</div></div>
-      </div>
-    </div>
-    <div class="gc-body">
-      <div class="tb">
-        <div class="tb-lbl">BOS</div>
-        <div class="sc"><div class="sc-n">1</div><div class="sc-name">Jayson Tatum</div><div class="sc-line">8R · 5A</div><div class="sc-pts">33<small> PTS</small></div></div>
-        <div class="sc"><div class="sc-n">2</div><div class="sc-name">Jaylen Brown</div><div class="sc-line">5R · 3A</div><div class="sc-pts">24<small> PTS</small></div></div>
-      </div>
-    </div>
-    <div class="gc-accordion">
-      <button class="accordion-btn" onclick="toggleBox(this)"><span>Box Score</span><div class="accordion-arrow"></div></button>
-      <div class="accordion-body">
-        <div class="bs-team-lbl">BOS</div>
-        <table class="bs-table">
-          <thead><tr><th>שחקן</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th></tr></thead>
-          <tbody>
-            <tr><td>J. Tatum</td><td>36</td><td>33</td><td>8</td><td>5</td><td>1</td><td>2</td></tr>
-            <tr><td>J. Brown</td><td>34</td><td>24</td><td>5</td><td>3</td><td>2</td><td>0</td></tr>
-            <tr><td>K. Porzingis</td><td>28</td><td>18</td><td>7</td><td>2</td><td>0</td><td>3</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="gc-video">
-      <div class="gc-video-ph"><div class="play-btn"></div><div class="video-label">Celtics vs Heat · Highlights</div></div>
-    </div>
-  </div>
-
-  <!-- Game 4 -->
-  <div class="gc" style="animation-delay:.21s">
-    <div class="gc-score">
-      <div class="gc-teams">
-        <div class="gc-team"><div class="gc-abbr">DEN</div><div class="gc-full">Denver Nuggets</div></div>
-        <div class="gc-mid"><div class="gc-pts"><strong>122</strong><span class="sep">–</span>114</div><div class="gc-status">Final</div></div>
-        <div class="gc-team r"><div class="gc-abbr">SAC</div><div class="gc-full">Sacramento Kings</div></div>
-      </div>
-    </div>
-    <div class="gc-body">
-      <div class="tb">
-        <div class="tb-lbl">DEN</div>
-        <div class="sc"><div class="sc-n">1</div><div class="sc-name">Nikola Jokić</div><div class="sc-line">14R · 11A</div><div class="sc-pts">31<small> PTS</small></div></div>
-        <div class="sc"><div class="sc-n">2</div><div class="sc-name">Jamal Murray</div><div class="sc-line">3R · 8A</div><div class="sc-pts">26<small> PTS</small></div></div>
-      </div>
-    </div>
-    <div class="gc-accordion">
-      <button class="accordion-btn" onclick="toggleBox(this)"><span>Box Score</span><div class="accordion-arrow"></div></button>
-      <div class="accordion-body">
-        <div class="bs-team-lbl">DEN</div>
-        <table class="bs-table">
-          <thead><tr><th>שחקן</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th></tr></thead>
-          <tbody>
-            <tr><td>N. Jokić</td><td>36</td><td>31</td><td>14</td><td>11</td><td>2</td><td>1</td></tr>
-            <tr><td>J. Murray</td><td>34</td><td>26</td><td>3</td><td>8</td><td>1</td><td>0</td></tr>
-            <tr><td>M. Porter Jr.</td><td>30</td><td>18</td><td>6</td><td>2</td><td>0</td><td>1</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="gc-video">
-      <div class="gc-video-ph"><div class="play-btn"></div><div class="video-label">Nuggets vs Kings · Highlights</div></div>
-    </div>
-  </div>
-
-  <!-- Game 5 -->
-  <div class="gc" style="animation-delay:.28s">
-    <div class="gc-score">
-      <div class="gc-teams">
-        <div class="gc-team"><div class="gc-abbr">NYK</div><div class="gc-full">New York Knicks</div></div>
-        <div class="gc-mid"><div class="gc-pts">108<span class="sep">–</span><strong>119</strong></div><div class="gc-status">Final</div></div>
-        <div class="gc-team r"><div class="gc-abbr">MIL</div><div class="gc-full">Milwaukee Bucks</div></div>
-      </div>
-    </div>
-    <div class="gc-body">
-      <div class="tb">
-        <div class="tb-lbl">MIL</div>
-        <div class="sc"><div class="sc-n">1</div><div class="sc-name">Giannis Antetokounmpo</div><div class="sc-line">12R · 6A</div><div class="sc-pts">34<small> PTS</small></div></div>
-        <div class="sc"><div class="sc-n">2</div><div class="sc-name">D. Lillard</div><div class="sc-line">3R · 9A</div><div class="sc-pts">28<small> PTS</small></div></div>
-      </div>
-    </div>
-    <div class="gc-accordion">
-      <button class="accordion-btn" onclick="toggleBox(this)"><span>Box Score</span><div class="accordion-arrow"></div></button>
-      <div class="accordion-body">
-        <div class="bs-team-lbl">MIL</div>
-        <table class="bs-table">
-          <thead><tr><th>שחקן</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th></tr></thead>
-          <tbody>
-            <tr><td>Giannis</td><td>36</td><td>34</td><td>12</td><td>6</td><td>1</td><td>2</td></tr>
-            <tr><td>D. Lillard</td><td>34</td><td>28</td><td>3</td><td>9</td><td>2</td><td>0</td></tr>
-            <tr><td>K. Middleton</td><td>28</td><td>14</td><td>5</td><td>3</td><td>1</td><td>0</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="gc-video">
-      <div class="gc-video-ph"><div class="play-btn"></div><div class="video-label">Knicks vs Bucks · Highlights</div></div>
-    </div>
-  </div>
-
-  <!-- Game 6 -->
-  <div class="gc" style="animation-delay:.35s">
-    <div class="gc-score">
-      <div class="gc-teams">
-        <div class="gc-team"><div class="gc-abbr">GSW</div><div class="gc-full">Golden State Warriors</div></div>
-        <div class="gc-mid"><div class="gc-pts"><strong>121</strong><span class="sep">–</span>109</div><div class="gc-status">Final</div></div>
-        <div class="gc-team r"><div class="gc-abbr">PHX</div><div class="gc-full">Phoenix Suns</div></div>
-      </div>
-    </div>
-    <div class="gc-body">
-      <div class="tb">
-        <div class="tb-lbl">GSW</div>
-        <div class="sc"><div class="sc-n">1</div><div class="sc-name">Stephen Curry</div><div class="sc-line">5R · 8A</div><div class="sc-pts">38<small> PTS</small></div></div>
-        <div class="sc"><div class="sc-n">2</div><div class="sc-name">Draymond Green</div><div class="sc-line">9R · 10A</div><div class="sc-pts">12<small> PTS</small></div></div>
-      </div>
-    </div>
-    <div class="gc-accordion">
-      <button class="accordion-btn" onclick="toggleBox(this)"><span>Box Score</span><div class="accordion-arrow"></div></button>
-      <div class="accordion-body">
-        <div class="bs-team-lbl">GSW</div>
-        <table class="bs-table">
-          <thead><tr><th>שחקן</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th></tr></thead>
-          <tbody>
-            <tr><td>S. Curry</td><td>36</td><td>38</td><td>5</td><td>8</td><td>2</td><td>0</td></tr>
-            <tr><td>D. Green</td><td>32</td><td>12</td><td>9</td><td>10</td><td>2</td><td>2</td></tr>
-            <tr><td>K. Thompson</td><td>30</td><td>22</td><td>4</td><td>2</td><td>1</td><td>0</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="gc-video">
-      <div class="gc-video-ph"><div class="play-btn"></div><div class="video-label">Warriors vs Suns · Highlights</div></div>
-    </div>
-  </div>
-
-  <!-- Israeli -->
-  <div class="sec"><div class="sec-title">ישראלים הלילה</div></div>
-  <div class="il-card">
-    <div class="il-name">🇮🇱 Deni Avdija</div>
-    <div class="il-game">Portland Trail Blazers vs New Orleans Pelicans</div>
-    <div class="il-stats">
-      <div><div class="il-sv">26</div><div class="il-sl">PTS</div></div>
-      <div><div class="il-sv">9</div><div class="il-sl">REB</div></div>
-      <div><div class="il-sv">5</div><div class="il-sl">AST</div></div>
-      <div><div class="il-sv">34</div><div class="il-sl">MIN</div></div>
-    </div>
-  </div>
-
-  <!-- History -->
-  <div class="sec"><div class="sec-title">היום לפני בהיסטוריה</div></div>
-  <div class="hist">
-    <div class="hist-yr">1984</div>
-    <div class="hist-line"></div>
-    <div class="hist-fact">Kareem Abdul-Jabbar became the NBA's all-time leading scorer, surpassing Wilt Chamberlain's record of 31,419 career points.</div>
-  </div>
-
-  <div class="footer">NBA Nightly · Updated automatically each morning</div>
-</div>
-
-<script>
-function toggleBox(btn) {
-  btn.classList.toggle('open');
-  const body = btn.nextElementSibling;
-  body.classList.toggle('open');
+  </div>`;
 }
+
+function buildStandings(east, west) {
+  if (!east || !west) return '';
+  const buildConf = (conf, name) => {
+    const playoff = (conf.playoff||[]).map(r=>`<div class="stand-row">${r.rank}. ${r.team} <span>${r.wins}-${r.losses}</span></div>`).join('');
+    const playin  = (conf.playin||[]).map(r=>`<div class="stand-row">${r.rank}. ${r.team} <span>${r.wins}-${r.losses}</span></div>`).join('');
+    return `<div class="stand-card">
+      <div class="stand-conf">${name}</div>
+      <div class="stand-zone">🏆 פלייאוף</div>${playoff}
+      <div class="stand-zone">⚡ פלאיין</div>${playin}
+    </div>`;
+  };
+  return `<div class="standings-grid">${buildConf(east,'🏙 מזרח')}${buildConf(west,'🌅 מערב')}</div>`;
+}
+
+async function loadData() {
+  const content = document.getElementById('main-content');
+  try {
+    const resp = await fetch('data.json?t=' + Date.now());
+    if (!resp.ok) throw new Error('No data');
+    const d = await resp.json();
+    document.getElementById('hdr-date').textContent = d.date_he || d.date || '';
+    document.getElementById('hdr-badge').textContent = `${(d.games||[]).length} משחקים`;
+    let html = '';
+    if (d.top_plays) {
+      html += `
+      <div class="sec" style="margin-top:0;margin-bottom:12px"><div class="sec-title">Top Plays of the Night</div></div>
+      <div style="border-radius:16px;overflow:hidden;margin-bottom:20px;box-shadow:var(--sh);position:relative;padding-top:56.25%;background:#0a0a0a;">
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer" onclick="window.open('${d.top_plays}','_blank')">
+          <div class="play-btn"></div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.55);letter-spacing:0.5px;">NBA Top Plays · אמש</div>
+        </div>
+      </div>`;
+    }
+    if (d.mvp) {
+      html += `
+      <div class="mvp">
+        <div class="mvp-eye">ביצוע הלילה</div>
+        <div class="mvp-name">${d.mvp.name}</div>
+        <div class="mvp-team">${d.mvp.team}</div>
+        <div class="mvp-stats">
+          <div class="mvp-s"><div class="mvp-sv">${parseInt(d.mvp.pts)}</div><div class="mvp-sl">PTS</div></div>
+        </div>
+      </div>`;
+    }
+    const games = d.games || [];
+    html += `<div class="sec"><div class="sec-title">משחקים הלילה</div><div class="sec-count">${games.length} משחקים</div></div>`;
+    if (games.length === 0) {
+      html += `<div style="text-align:center;padding:30px;color:var(--ink3);font-family:var(--serif);font-size:16px">😴 לא היו משחקים הלילה</div>`;
+    } else {
+      games.forEach((g, i) => { html += buildGameCard(g, i); });
+    }
+    const il = d.il_players || [];
+    html += `<div class="sec"><div class="sec-title">ישראלים הלילה</div></div>`;
+    if (il.length === 0) {
+      html += `<div style="font-size:13px;color:var(--ink3);margin-bottom:20px">לא שיחק אף ישראלי הלילה.</div>`;
+    } else {
+      il.forEach(p => {
+        html += `<div class="il-card">
+          <div class="il-name">🇮🇱 ${p.name}</div>
+          <div class="il-game">${p.game || ''}</div>
+          <div class="il-stats">
+            <div><div class="il-sv">${parseInt(p.pts)}</div><div class="il-sl">PTS</div></div>
+            <div><div class="il-sv">${parseInt(p.reb)}</div><div class="il-sl">REB</div></div>
+            <div><div class="il-sv">${parseInt(p.ast)}</div><div class="il-sl">AST</div></div>
+            <div><div class="il-sv">${p.min||'—'}</div><div class="il-sl">MIN</div></div>
+          </div>
+        </div>`;
+      });
+    }
+    html += `<div class="sec"><div class="sec-title">טבלת הליגה</div></div>`;
+    html += buildStandings(d.east, d.west);
+    if (d.history) {
+      html += `<div class="sec"><div class="sec-title">היום לפני בהיסטוריה</div></div>
+      <div class="hist">
+        <div class="hist-yr">${d.history.year}</div>
+        <div class="hist-line"></div>
+        <div class="hist-fact">${d.history.fact}</div>
+      </div>`;
+    }
+    html += `<div class="footer">NBA Nightly · מתעדכן כל בוקר אוטומטית</div>`;
+    content.innerHTML = html;
+  } catch(e) {
+    content.innerHTML = `<div class="loading">לא נמצאו נתונים להיום.<br><br><small>הנתונים יהיו זמינים אחרי שהבוט ירוץ בבוקר.</small></div>`;
+  }
+}
+
+loadData();
 </script>
 </body>
 </html>
