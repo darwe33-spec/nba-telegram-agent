@@ -39,7 +39,6 @@ def search_youtube(query):
 def get_top_plays_url(date_obj):
     date_str = date_obj.strftime('%B %d %Y')
     query    = f'NBA Top Plays {date_str}'
-    print(f'מחפש Top Plays: {query}')
     return search_youtube(query)
 
 
@@ -67,46 +66,91 @@ def get_nba_history(date_obj):
         return None
 
 
-def get_standings():
+def get_playoff_bracket():
+    """שולף את עץ הפלייאוף המלא מ-ESPN."""
     try:
-        url  = 'https://site.api.espn.com/apis/v2/sports/basketball/nba/standings'
+        # נסיון ראשון — endpoint של bracket
+        url  = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/playoffs/bracket'
         resp = requests.get(url, timeout=15)
-        if not resp.ok:
-            return None, None
-        data = resp.json()
-        east = {'playoff': [], 'playin': []}
-        west = {'playoff': [], 'playin': []}
+        if resp.ok:
+            return resp.json()
+        # נסיון שני — tournament
+        url2  = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/tournament'
+        resp2 = requests.get(url2, timeout=15)
+        if resp2.ok:
+            return resp2.json()
+        return None
+    except Exception as e:
+        print(f'Bracket error: {e}')
+        return None
 
-        for conf in data.get('children', []):
-            conf_name = conf.get('name', '')
+
+def parse_bracket(bracket_data):
+    """מנתח את נתוני הפלייאוף ומחזיר מערב ומזרח."""
+    if not bracket_data:
+        return None, None
+
+    east = []
+    west = []
+
+    try:
+        # ESPN bracket data structure can vary — נסה כמה דרכים
+        groups = bracket_data.get('groups', []) or bracket_data.get('children', [])
+        for group in groups:
+            conf_name = group.get('name', '') or group.get('abbreviation', '')
             is_east   = 'East' in conf_name
             target    = east if is_east else west
 
-            entries = conf.get('standings', {}).get('entries', [])
+            series_list = group.get('series', []) or group.get('matches', [])
+            for series in series_list:
+                try:
+                    competitors = series.get('competitors', [])
+                    if len(competitors) != 2:
+                        continue
+                    t1 = competitors[0].get('team', {}).get('abbreviation', '?')
+                    t2 = competitors[1].get('team', {}).get('abbreviation', '?')
+                    w1 = competitors[0].get('wins', 0)
+                    w2 = competitors[1].get('wins', 0)
 
-            def sort_key(e):
-                for s in e.get('stats', []):
-                    if s['name'] == 'winPercent':
-                        return -float(s.get('value', 0))
-                return 0
-
-            entries_sorted = sorted(entries, key=sort_key)
-
-            for rank, entry in enumerate(entries_sorted, 1):
-                team   = entry.get('team', {}).get('shortDisplayName', '?')
-                stats  = {s['name']: s.get('displayValue', '?') for s in entry.get('stats', [])}
-                wins   = stats.get('wins', '?')
-                losses = stats.get('losses', '?')
-                row    = {'rank': rank, 'team': team, 'wins': wins, 'losses': losses}
-                if rank <= 6:
-                    target['playoff'].append(row)
-                elif rank <= 10:
-                    target['playin'].append(row)
+                    leader = t1 if w1 > w2 else (t2 if w2 > w1 else None)
+                    target.append({
+                        'team1':    t1,
+                        'team2':    t2,
+                        'wins1':    w1,
+                        'wins2':    w2,
+                        'leader':   leader,
+                    })
+                except Exception:
+                    continue
 
         return east, west
     except Exception as e:
-        print(f'Standings error: {e}')
+        print(f'Parse bracket error: {e}')
         return None, None
+
+
+def get_series_info(game_id):
+    """שולף מידע על סדרת פלייאוף ממשחק ספציפי."""
+    try:
+        url  = f'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event={game_id}'
+        resp = requests.get(url, timeout=15)
+        if not resp.ok:
+            return None
+        data = resp.json()
+        header = data.get('header', {})
+        series = header.get('competitions', [{}])[0].get('series', {})
+        if not series:
+            return None
+        return {
+            'type':        series.get('type', ''),
+            'summary':     series.get('summary', ''),
+            'title':       series.get('title', ''),
+            'game_number': series.get('gameNumber', 0),
+            'completed':   series.get('completed', False),
+        }
+    except Exception as e:
+        print(f'Series error: {e}')
+        return None
 
 
 def get_player_stats(game_id):
@@ -222,6 +266,8 @@ def get_nba_data():
                 except Exception:
                     continue
 
+            series_info = get_series_info(game_id) if game_id else None
+
             if game_id:
                 full_stats = get_player_stats(game_id)
                 for p in full_stats:
@@ -235,19 +281,23 @@ def get_nba_data():
                     for t in teams
                 )
                 yt_direct = search_youtube(f'NBA {teams[0]["name"]} vs {teams[1]["name"]} highlights')
+                score_diff = abs(int(teams[0]['score']) - int(teams[1]['score']))
+
                 games_data.append({
-                    'game_id':  game_id,
-                    'name':     game_name,
-                    'status':   status,
-                    'teams':    teams,
-                    'is_fav':   is_fav,
-                    'yt_url':   yt_direct,
+                    'game_id':    game_id,
+                    'name':       game_name,
+                    'status':     status,
+                    'teams':      teams,
+                    'is_fav':     is_fav,
+                    'yt_url':     yt_direct,
+                    'series':     series_info,
+                    'score_diff': score_diff,
                 })
         except Exception as e:
             print(f'Skipping game: {e}')
             continue
 
-    games_data.sort(key=lambda g: (0 if g['is_fav'] else 1))
+    games_data.sort(key=lambda g: (0 if g['is_fav'] else 1, g['score_diff']))
     return games_data, all_players, il_players
 
 
@@ -282,7 +332,39 @@ def save_to_github(data):
         return False
 
 
-def build_message(games, all_players, il_players, history_fact, top_plays_url):
+def build_bracket_section(east, west):
+    """בונה את סעיף טבלת הפלייאוף."""
+    if not east and not west:
+        return []
+
+    lines = []
+    lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
+    lines.append('🏆 <b>מצב הסדרות</b>')
+    lines.append('')
+
+    if west:
+        lines.append('🌅 <b>מערב</b>')
+        for s in west:
+            lead = '⚡ ' if s['leader'] else '   '
+            lead_team = s['leader'] if s['leader'] else ''
+            if s['leader']:
+                lines.append(f'{lead}{s["team1"]} {s["wins1"]}-{s["wins2"]} {s["team2"]}')
+            else:
+                lines.append(f'   {s["team1"]} {s["wins1"]}-{s["wins2"]} {s["team2"]}')
+        lines.append('')
+
+    if east:
+        lines.append('🏙 <b>מזרח</b>')
+        for s in east:
+            if s['leader']:
+                lines.append(f'⚡ {s["team1"]} {s["wins1"]}-{s["wins2"]} {s["team2"]}')
+            else:
+                lines.append(f'   {s["team1"]} {s["wins1"]}-{s["wins2"]} {s["team2"]}')
+
+    return lines
+
+
+def build_message(games, all_players, il_players, history_fact, top_plays_url, east, west):
     try:
         date_obj  = datetime.now() - timedelta(days=1)
         days_he   = ['שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת', 'ראשון']
@@ -294,7 +376,7 @@ def build_message(games, all_players, il_players, history_fact, top_plays_url):
     lines = []
     lines.append(f'<a href="{top_plays_url}">🎬 Top Plays of the Night</a>')
     lines.append('')
-    lines.append(f'🏀 <b>NBA | {date_str}</b>')
+    lines.append(f'🏀 <b>NBA PLAYOFFS | {date_str}</b>')
 
     if all_players:
         mvp = max(all_players, key=lambda x: x['pts'])
@@ -310,17 +392,27 @@ def build_message(games, all_players, il_players, history_fact, top_plays_url):
             s0, s1 = int(t0['score']), int(t1['score'])
             star   = '⭐ ' if g['is_fav'] else ''
             yt     = g.get('yt_url', '')
+            series = g.get('series')
+
             if s0 > s1:
                 score_line = f'<b>{t0["abbr"]} {s0}</b>-{s1} {t1["abbr"]}'
             else:
                 score_line = f'{t0["abbr"]} {s0}-<b>{s1} {t1["abbr"]}</b>'
+
+            series_line = ''
+            if series and series.get('summary'):
+                series_line = f'   🏆 {series["summary"]}'
+
             scorers = []
             for team in [t0, t1]:
                 if team['leaders']:
                     top = team['leaders'][0]
                     scorers.append(f'{top["short"]} {top["val"]}')
             scorers_line = ' • '.join(scorers)
+
             lines.append(f'{star}{score_line} | <a href="{yt}">▶️</a>')
+            if series_line:
+                lines.append(series_line)
             lines.append(f'   {scorers_line}')
 
     lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
@@ -331,12 +423,15 @@ def build_message(games, all_players, il_players, history_fact, top_plays_url):
     else:
         lines.append('🇮🇱 לא שיחק ישראלי הלילה')
 
-    lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
+    # טבלת פלייאוף
+    bracket_lines = build_bracket_section(east, west)
+    lines.extend(bracket_lines)
 
     if history_fact:
-        lines.append(f'📜 {history_fact["year"]}: {history_fact["fact"]}')
         lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
+        lines.append(f'📜 {history_fact["year"]}: {history_fact["fact"]}')
 
+    lines.append('━━━━━━━━━━━━━━━━━━━━━━━━')
     lines.append('🤖 <i>NBA Nightly Bot</i>')
     return '\n'.join(lines)
 
@@ -372,9 +467,6 @@ if __name__ == '__main__':
     games, players, il = get_nba_data()
     print(f'משחקים: {len(games)}  |  שחקנים: {len(players)}  |  ישראלים: {len(il)}')
 
-    print('שולף טבלה...')
-    east, west = get_standings()
-
     today     = datetime.now()
     yesterday = today - timedelta(days=1)
 
@@ -384,18 +476,27 @@ if __name__ == '__main__':
     print('שולף עובדה היסטורית...')
     history_fact = get_nba_history(today)
 
+    print('שולף טבלת פלייאוף...')
+    bracket_data = get_playoff_bracket()
+    east, west   = parse_bracket(bracket_data)
+    if east or west:
+        print(f'נטענו {len(east or [])} סדרות במזרח ו-{len(west or [])} במערב')
+    else:
+        print('לא נטענה טבלת פלייאוף')
+
     data = {
-        'date':      yesterday.strftime('%d/%m/%Y'),
-        'date_he':   f'{["שני","שלישי","רביעי","חמישי","שישי","שבת","ראשון"][yesterday.weekday()]} {yesterday.day}.{yesterday.month}.{str(yesterday.year)[2:]}',
-        'games':     games,
-        'mvp':       max(players, key=lambda x: x["pts"]) if players else None,
-        'il_players':il,
-        'history':   history_fact,
-        'top_plays': top_plays_url,
-        'east':      east,
-        'west':      west,
+        'date':         yesterday.strftime('%d/%m/%Y'),
+        'date_he':      f'{["שני","שלישי","רביעי","חמישי","שישי","שבת","ראשון"][yesterday.weekday()]} {yesterday.day}.{yesterday.month}.{str(yesterday.year)[2:]}',
+        'games':        games,
+        'mvp':          max(players, key=lambda x: x["pts"]) if players else None,
+        'il_players':   il,
+        'history':      history_fact,
+        'top_plays':    top_plays_url,
+        'playoffs':     True,
+        'bracket_east': east,
+        'bracket_west': west,
     }
     save_to_github(data)
 
-    msg = build_message(games, players, il, history_fact, top_plays_url)
+    msg = build_message(games, players, il, history_fact, top_plays_url, east, west)
     send_telegram(msg)
